@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+
+a {
+  text-decoration: none;
+}
+
+.btns {
+  display: box;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(to bottom, rgb(115, 249, 74) 0%, rgb(88, 233, 44) 100%);
+  box-shadow: 0 4px 4px rgba(0, 0, 0, .3);
+  border-radius: 50%;
+  line-height: 100px;
+  text-align: center;
+  text-decoration: none;
+  color: white;
+}
+
+
+.btns::before {
+  display: block;
+  position: absolute;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: black;
+  opacity: 0;
+  content: '';
+  animation: pulse 1s infinite;
+}
+
+.btns:hover::before {
+  animation: none;
+  opacity: .4;
+  transform: scale(1.3);
+}
+.btns.is-clicked {
+  background: linear-gradient(to bottom, rgb(255, 23, 23) 0%, rgb(255, 23, 23) 100%);
+}
+.btns.is-clicked:before {
+  animation: blastOut 1s;
+}
+
+@keyframes pulse {
+  from {
+    transform: scale(1);
+    opacity: .4;
+  }
+  to {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+@keyframes blastOut {
+  from {
+    transform: scale(0.9);
+    opacity: .4;
+  }
+  to {
+    transform: scale(10);
+    opacity: 0;
+  }
+}
+.position-relative {
+  position: relative;
+}
+
+.overlay-button {
+  position: absolute;
+  top: 49%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.custom-img {
+  width: 230px; /* Adjust the width as needed */
+  height: auto; /* Maintain aspect ratio */
+}

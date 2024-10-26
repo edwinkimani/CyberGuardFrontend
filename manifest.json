@@ -1,0 +1,44 @@
+{
+    "manifest_version": 3,
+    "name": "CyberGurd",
+    "version": "1.0",
+    "description": "An extension with multiple pages and scripts.",
+    "permissions": [
+        "proxy",
+        "storage",
+        "activeTab",
+        "tabs",
+        "webRequest"
+    ],
+    "background": {
+      "service_worker": "sw.js"
+    },
+    "host_permissions": [
+      "http://127.0.0.1/*" 
+    ], 
+    "action": {
+      "default_popup": "pages/popup.html",
+      "default_icon": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+      }
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["src/contentScripts.js"]
+      }
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["pages/styles/*.css"],
+        "matches": ["<all_urls>"]
+      },
+      {
+        "resources": ["/pages/BlockPage.html"],
+        "matches": ["<all_urls>"]
+      }
+    ]
+  }
+  

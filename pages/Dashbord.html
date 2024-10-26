@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashbord</title>
+  <link rel="stylesheet" href="../pages/css/Dashbord.css">
+  <script src="../src/bootstrap.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <style>
+    html, body {
+      width: 400px;
+      height: 500px;
+      margin: 0;
+      overflow-y: scroll;
+      padding: 0px;
+    }
+    ::-webkit-scrollbar {
+      width: 12px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+    
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: #888 #f1f1f1;
+    }
+  </style>
+</head>
+  <body class="p-0">
+    <div class="container-fluid p-0">
+      <nav style="background-color: #002D62;height: 70px;" class="navbar sticky-top">
+        <div class="container-fluid">
+          <a style="color: #5DCAD1;" class="navbar-brand" href="#">
+            <img src="../icons/apple-touch-icon.png" width="50" height="50" alt="">
+            <b>Cyber Guard </b>
+          </a>
+          <div>
+            <a href="./notification.html"><img style="cursor: pointer;" src="../icons/bell.png" alt="" width="25" height="25"></a>
+            <img style="cursor: pointer;" src="../icons/settings (1).png" alt="" width="20" height="20">
+          </div>
+        </div>
+      </nav>
+      <div class="container-fluid mt-4">
+
+        <!-- tost div start -->
+        <div class="toast-container position-fixed bottom-0 start-50 translate-middle-x p-4">
+          <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="toast-body p-1">
+                  <div class="container-fluid">
+                      <div class="row">
+                          <div class="col-10">
+                              <p class="mt-2">Hello, world! This is a toast message.</p>
+                          </div>
+                          <div class="col-2">
+                              <button type="button" class="btn-close mt-2" data-bs-dismiss="toast" aria-label="Close"></button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+      
+        <!-- tost div end -->
+
+        <!-- first div -->
+          <div class="row p-2">
+            <div style="background-color: #D4EDDA;border-radius: 10px;" class="col-5">
+                <div class="row">
+                  <div class="col-12 d-flex justify-content-center align-content-center">
+                      <img class="mt-1" src="../icons/block.png" alt="" width="45" height="45">
+                  </div>
+                </div>
+                <div class="row"><h6 style="text-align: center;">Blocked sites</h6></div>
+                <div class="row"><span style="text-align: center;">34</span></div>
+            </div>
+
+            <div class="col-2">
+              <span style="color: white;">1</span>
+            </div>
+
+            <div style="background-color: #D4EDDA; border-radius: 10px;" class="col-5">
+              <div class="row">
+                <div class="col-12 d-flex justify-content-center align-content-center">
+                    <img class="mt-1" src="../icons/block (1).png" alt="" width="45" height="45">
+                </div>
+              </div>
+              <div class="row"><h6 style="text-align: center;">Blocked sites</h6></div>
+              <div class="row"><span style="text-align: center;">34</span></div>
+            </div>
+        </div>
+        <!-- end of first div -->
+
+        <!-- VPN div -->
+          <div  class="row p-2">
+            <div style="background-color: #D4EDDA;border-radius: 20px;height: 90px;" class="col-12 p-2">
+              <div class="row">
+                  <div class="col-3">
+                    <img class="mt-2" src="../icons/vpn.png" alt="" width="60" height="60">
+                  </div>
+                  <div class="col-5">
+                    <p class="mt-2"><b>VPN Status:</b></p>
+                    <h6 class="text-success"><b>ACTIVE</b></h6>
+                  </div>
+                  <div class="col-4">
+                   <a href="./vpn.html"> <button id="navigateToVpn" style="background-color: #002C61;color: #00F5FF;" type="button" class="btn mt-3"><b>Connect</b></button></a>
+                  </div>
+              </div>
+            </div>
+          </div>
+        <!-- end of VPN div -->
+
+        <!-- SSL Certificate div -->
+          <div  class="row p-2">
+            <div style="background-color: #D4EDDA;border-radius: 20px;height: 90px;" class="col-12 p-2">
+              <div class="row">
+                <div class="col-3">
+                  <img class="mt-2" src="../icons/ssl.png" alt="" width="60" height="60">
+                </div>
+                <div class="col-4">
+                  <p class="mt-2"><b>SSL Status :</b></p>
+                  <h6 class="text-success"><b>SECURE</b></h6>
+                </div>
+                <div class="col-5">
+                   <a href="./ssl.html"><button id="clearTimeoutButton" style="background-color: #002C61;color: #00F5FF;font-size: medium;" type="button" class="btn mt-3 col-12"><b>View Details</b></button></a>
+                </div>
+            </div>
+            </div>
+          </div>
+        <!-- end of SSL Certificate div -->
+
+        <!-- PASSWORD TESTING div -->
+          <div  class="row p-2">
+            <div style="background-color: #D4EDDA;border-radius: 20px;height: 90px;" class="col-12 p-2">
+              <div class="row">
+                  <div class="col-3">
+                    <img class="mt-2" src="../icons/cyber-security (1).png" alt="" width="60" height="60">
+                  </div>
+                  <div class="col-5">
+                    <p class="mt-2"><b>PASSWORD TESTING</b></p>
+                  </div>
+                  <div class="col-4">
+                    <a href="./passwordTesting.html"><button id="clearTimeoutButton" style="background-color: #002C61;color: #00F5FF;" type="button" class="btn mt-3 col-12"><b>Test</b></button></a>
+                  </div>
+              </div>
+            </div>
+          </div>
+        <!-- end of PASSWORD TESTING div -->
+
+        <!-- Adblocker div -->
+          <div  class="row p-2">
+            <div style="background-color: #D4EDDA;border-radius: 20px;height: 90px;" class="col-12 p-2">
+              <div class="row">
+                  <div class="col-3">
+                    <img class="mt-2" src="../icons/block (1).png" alt="" width="60" height="60">
+                  </div>
+                  <div class="col-5">
+                    <p class="mt-2"><b>Adblocker:</b></p>
+                    <h6 class="mt-2"><b>Ads Blocked:<s class="text-danger">34</s></b></h6>
+                  </div>
+                  <div class="col-4">
+                    <a href="./AdBlocker.html"><button id="clearTimeoutButton" style="background-color: #002C61;color: #00F5FF;" type="button" class="btn mt-3"><b>Connect</b></button></a>
+                  </div>
+              </div>
+            </div>
+          </div>
+        <!-- end of Adblocker div -->
+
+        <!-- SECURE div -->
+          <div  class="row p-2">
+            <div style="background-color: #D4EDDA;border-radius: 20px;height: 90px;" class="col-12 p-2">
+              <div class="row">
+                  <div class="col-3">
+                    <img class="mt-2" src="../icons/wifi (1).png" alt="" width="60" height="60">
+                  </div>
+                  <div class="col-4">
+                    <p class="mt-2"><b>Wi-Fi</b></p>
+                    <h6 class="mt-2 text-success"><b>SECURE</b></h6>
+                  </div>
+                  <div class="col-5">
+                    <a href="./WifiSecurity.html"><button id="clearTimeoutButton" style="background-color: #002C61;color: #00F5FF;" type="button" class="btn mt-3"><b>View Details</b></button></a>
+                  </div>
+              </div>
+            </div>
+          </div>
+        <!-- end of SECURE div -->
+
+        <!-- ENABLE PROXIES div -->
+          <div  class="row p-2">
+            <div style="background-color: #D4EDDA;border-radius: 20px;height: 90px;" class="col-12 p-2">
+              <div class="row">
+                  <div class="col-3">
+                    <img class="mt-2" src="../icons/proxy (1).png" alt="" width="60" height="60">
+                  </div>
+                  <div class="col-5">
+                    <p class="mt-2"><b>ENABLE PROXIES</b></p>
+                    <h6 class="mt-2 text-success"><b>ACTIVE</b></h6>
+                  </div>
+                  <div class="col-4">
+                    <a href="./Proxies.html"><button id="clearTimeoutButton" style="background-color: #002C61;color: #00F5FF;" type="button" class="btn mt-3"><b>Connect</b></button></a>
+                  </div>
+              </div>
+            </div>
+          </div>
+        <!-- end of ENABLE PROXIES div -->
+
+        <!-- ENABLE PARENT CONTROL div -->
+          <div  class="row p-2">
+            <div style="background-color: #D4EDDA;border-radius: 20px;height: 90px;" class="col-12 p-2">
+              <div class="row">
+                  <div class="col-3">
+                    <img class="mt-2" src="../icons/parental-control.png" alt="" width="60" height="60">
+                  </div>
+                  <div class="col-5">
+                    <p class="mt-2"><b>PARENT CONTROL</b></p>
+                  </div>
+                  <div class="col-4">
+                    <a href="../pages/login.html"><button id="clearTimeoutButton" style="background-color: #002C61;color: #00F5FF;" type="button" class="btn mt-3"><b>Configure</b></button></a>
+                  </div>
+              </div>
+            </div>
+          </div>
+        <!-- end of ENABLE PARENT CONTROL div -->
+      
+    </div>
+    <footer class="mt-4">
+        <div style="background-color: #002D62;height: 40px;color: #00F5FF;" class="container">
+            <div class="row">
+                <div class="col-4">
+                    <p style="text-align: end;"><b>Supports</b></p>
+                </div>
+                <div class="col-4">
+                    <p><a href="#"><b>Privacy Policy</b></a></p>
+                </div>
+                <div class="col-4">
+                    <p style="text-align: left;"><b>Version: 1.0</b></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <script src="../src/Dashbord.js"></script>
+  </body>
+</html>
+ 
