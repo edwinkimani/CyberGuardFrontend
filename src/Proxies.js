@@ -7,7 +7,7 @@ function updatePopup(proxyList) {
     proxyInfo.innerHTML = proxyList
         .map(
             (proxy) => `
-            <div>
+            <div style="background-color: #D4EDDA;min-height: 40px;color: #00F5FF;" class="row rounded-3 mt-4 m-2">
               <img src="https://flagpedia.net/data/flags/icon/72x54/${proxy.location.country.toLowerCase()}.png" alt="${proxy.location.country}" width="20" height="15">
               <strong>${proxy.location.city}, ${proxy.location.region}</strong> - ${proxy.ip}:${proxy.port}
             </div>

@@ -1,44 +1,51 @@
 {
-    "manifest_version": 3,
-    "name": "CyberGurd",
-    "version": "1.0",
-    "description": "An extension with multiple pages and scripts.",
-    "permissions": [
-        "proxy",
-        "storage",
-        "activeTab",
-        "tabs",
-        "webRequest"
-    ],
-    "background": {
-      "service_worker": "sw.js"
+  "manifest_version": 3,
+  "name": "CyberGurd",
+  "version": "1.0",
+  "description": "An extension with multiple pages and scripts.",
+  "permissions": [
+    "proxy",
+    "storage",
+    "activeTab",
+    "tabs",
+    "webRequest",
+    "history",
+    "scripting",
+    "notifications"
+  ],
+  "background": {
+    "service_worker": "sw.js"
+  },
+  "host_permissions": [
+    "<all_urls>" 
+  ], 
+  "action": { 
+    "default_popup": "pages/popup.html",
+    "default_icon": {
+      "192": "icons/favicon/android-chrome-192x192.png",
+      "128": "icons/favicon/apple-touch-icon.png",
+      "48": "icons/favicon/favicon.ico",
+      "16": "icons/favicon/favicon-16x16.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pages/styles/*.css"],
+      "matches": ["<all_urls>"]
     },
-    "host_permissions": [
-      "http://127.0.0.1/*" 
-    ], 
-    "action": {
-      "default_popup": "pages/popup.html",
-      "default_icon": {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-      }
+    {
+      "resources": ["/pages/BlockPage.html"],
+      "matches": ["<all_urls>"]
     },
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": ["src/contentScripts.js"]
-      }
-    ],
-    "web_accessible_resources": [
-      {
-        "resources": ["pages/styles/*.css"],
-        "matches": ["<all_urls>"]
-      },
-      {
-        "resources": ["/pages/BlockPage.html"],
-        "matches": ["<all_urls>"]
-      }
-    ]
-  }
-  
+    {
+      "resources": ["/pages/BlockPagePhissing.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
