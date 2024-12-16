@@ -57,7 +57,9 @@ document.getElementById('myForm').addEventListener('submit', function(e) {
     })
     .then(result => {
         // Handle successful response
-        localStorage.setItem('user', JSON.stringify(result.user));
+        chrome.storage.sync.set({ user: result.user }, () => {
+            console.log('User stored successfully:', result.user);
+        });
         
         // Update toast for success
         messageParagraph.textContent = 'Login successful! Redirecting...';

@@ -2,24 +2,27 @@
   "manifest_version": 3,
   "name": "CyberGurd",
   "version": "1.0",
-  "description": "An extension with multiple pages and scripts.",
+  "description": "CyberGurd is a comprehensive extension designed to enhance user privacy and security. It provides features like proxy management, content filtering to block adult sites, password strength monitoring, phishing detection, and ad blocking for YouTube videos. With a focus on protecting minors and kids, this extension helps create a safer online experience by preventing access to harmful content and ensuring secure browsing.",
   "permissions": [
-    "proxy",
     "storage",
     "activeTab",
     "tabs",
-    "webRequest",
     "history",
     "scripting",
-    "notifications"
+    "notifications",
+    "webRequest",
+    "proxy",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
   ],
   "background": {
-    "service_worker": "sw.js"
+    "service_worker": "sw.js",
+    "type": "module"
   },
   "host_permissions": [
-    "<all_urls>" 
-  ], 
-  "action": { 
+    "<all_urls>"
+  ],
+  "action": {
     "default_popup": "pages/popup.html",
     "default_icon": {
       "192": "icons/favicon/android-chrome-192x192.png",
@@ -37,6 +40,22 @@
   "web_accessible_resources": [
     {
       "resources": ["pages/styles/*.css"],
+      "matches": ["<all_urls>"]
+    },
+    {
+      "resources": ["icons/favicon/android-chrome-192x192.png"],
+      "matches": ["<all_urls>"]
+    },
+    {
+      "resources": ["icons/favicon/apple-touch-icon.png"],
+      "matches": ["<all_urls>"]
+    },
+    {
+      "resources": ["icons/favicon/favicon.ico"],
+      "matches": ["<all_urls>"]
+    },
+    {
+      "resources": ["icons/favicon/favicon-16x16.png"],
       "matches": ["<all_urls>"]
     },
     {

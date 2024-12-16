@@ -1,17 +1,20 @@
 document.addEventListener("DOMContentLoaded", function () {
-  document
-    .getElementById("toggleButton")
-    .addEventListener("click", function () {
-      var collapseElement = document.getElementById("multiCollapseExample2");
-
+  document.addEventListener("DOMContentLoaded", function () {
+    const collapseElement = document.getElementById("multiCollapseExample2");
+    const toggleButton = document.getElementById("toggleButton");
+  
+    toggleButton.addEventListener("click", function () {
+      const bsCollapse = new bootstrap.Collapse(collapseElement, {
+        toggle: false, // Prevent automatic toggle on initialization
+      });
+  
       if (collapseElement.classList.contains("show")) {
-        collapseElement.classList.remove("show");
-        collapseElement.style.display = "none";
+        bsCollapse.hide(); // Collapse the element
       } else {
-        collapseElement.classList.add("show");
-        collapseElement.style.display = "block";
+        bsCollapse.show(); // Expand the element
       }
     });
+  });  
 
   function storeMostRecentUrl() {
     chrome.history.search({ text: "", maxResults: 2 }, function (data) {

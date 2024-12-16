@@ -85,23 +85,22 @@
     <div class="container-fluid mt-1">
 
       <!-- first div -->
-      <div class="row p-2">
+      <div style="min-height: 40px; color: #00F5FF;" class="row rounded-3 mt-4 m-2">
         <div class="col-12">
           <div class="row">
             <div class="col-12 d-flex justify-content-center align-content-center position-relative">
               <img src="../icons/Cyber Guard (6).png" height="0px" alt="img" class="img-fluid custom-img">
-
-              <button id="startButton"
-                style="height: 90px;width: 90px;border-radius:45px;background-color: #00B6B6;color: white;border: none;"
-                class="btn btn-secondary overlay-button">Start</button>
-              <button id="stopButton"
-                style="height: 90px;width: 90px;border-radius:45px;background-color: #8f8f8f;color: white;border: none;"
-                class="btn btn-secondary overlay-button">Stop</button>
-
+      
+              <!-- Updated button style to match the second button -->
+              <button id="proxyToggle"
+                style="height: 90px; width: 90px; border-radius: 45px; background-color: #00B6B6; color: white; border: none;"
+                class="btn btn-secondary overlay-button">
+                  Start
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      </div>      
 
       <!-- end of first div -->
 
@@ -118,14 +117,13 @@
       <!-- end of second div -->
 
       <!-- third div -->
-      <div style="background-color: #002D62;min-height: 40px;color: #00F5FF;" class="row rounded-3 mt-4">
+      <div style="background-color: #002D62; min-height: 40px; color: #00F5FF;" class="row rounded-3 mt-4">
         <div class="col-12">
           <div class="row">
             <div class="col-4 d-flex justify-content-center align-content-center mt-2">
               <div class="container">
-                <div style="text-align: center;font-size: 13px;"
-                  class="row d-flex justify-content-center align-content-center">
-                  <b>11 KB/s</b>
+                <div id="download-speed" style="text-align: center; font-size: 13px;" class="row d-flex justify-content-center align-content-center">
+                  <b>-- KB/s</b>
                 </div>
                 <div style="text-align: center;" class="row d-flex justify-content-center align-content-center">
                   <b>Downloads</b>
@@ -134,8 +132,8 @@
             </div>
             <div class="col-4 d-flex justify-content-center align-content-center mt-2">
               <div class="container">
-                <div style="text-align: center;" class="row d-flex justify-content-center align-content-center">
-                  <b>00:00:02</b>
+                <div id="duration" style="text-align: center;" class="row d-flex justify-content-center align-content-center">
+                  <b>--:--:--</b>
                 </div>
                 <div style="text-align: center;" class="row d-flex justify-content-center align-content-center">
                   <b>DURATION</b>
@@ -144,9 +142,8 @@
             </div>
             <div class="col-4 d-flex justify-content-center align-content-center mt-2">
               <div class="container">
-                <div style="text-align: center;font-size: 13px;"
-                  class="row d-flex justify-content-center align-content-center">
-                  <b>201 KB/s</b>
+                <div id="upload-speed" style="text-align: center; font-size: 13px;" class="row d-flex justify-content-center align-content-center">
+                  <b>-- KB/s</b>
                 </div>
                 <div style="text-align: center;" class="row d-flex justify-content-center align-content-center">
                   <b>UPLOAD</b>
@@ -159,23 +156,22 @@
       <!-- end of third div -->
 
       <!-- third div -->
-      <div style="background-color: #D4EDDA;min-height: 40px;color: #00F5FF;" class="row rounded-3 mt-4 m-2">
-        <div class="col-12">
-          <div class="row">
-            <div id="loading" style="display: none;">Loading...</div>
-            <button id="proxyToggle">Start Proxy</button>
-           
-            <!-- <div id="proxyLocation">
-              Country: <span id="proxyCountry"></span>, City: <span id="proxyCity"></span>
-            </div> -->
-
-          </div>
+      <div id="loading" style="display: none; text-align: center; margin-top: 20px;">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
       </div>
       <!-- end of third div -->
 
       <!-- forth div -->
       <div id="proxyInfo">
+        <div style="background-color: #D4EDDA;min-height: 40px;color: #00F5FF;" class="row rounded-3 mt-4 m-2">
+          <div class="col-12">
+            <div class="row">
+              <span style="text-align: center; margin-top: 10px;" class="text-dark"><b>No Proxies set</b></span>          
+            </div>
+          </div>
+        </div>
       </div>
       <!-- end of forth div -->
 
@@ -198,7 +194,6 @@
     </footer>
 
   </div>
-
   <script src="../src/Proxies.js"></script>
 </body>
 

@@ -1,138 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./ssl.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <title>ssl</title>
-    <style>
-        html, body {
-          width: 400px;
-          height: 500px;
-          margin: 0;
-          overflow-y: scroll;
-          overflow-x: hidden;
-          padding: 0px;
-        }
-        ::-webkit-scrollbar {
-          width: 12px;
-        }
-        
-        ::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-        
-        html {
-          scrollbar-width: thin;
-          scrollbar-color: #888 #f1f1f1;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <title>ssl</title>
+  <style>
+    html,
+    body {
+      width: 400px;
+      height: 500px;
+      margin: 0;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      padding: 0px;
+    }
+
+    ::-webkit-scrollbar {
+      width: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: #888 #f1f1f1;
+    }
+
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="container-fluid p-0">
-        <nav style="background-color: #002D62;height: 70px;" class="navbar sticky-top">
-            <div class="container-fluid">
-              <a style="color: #5DCAD1;" class="navbar-brand" href="#">
-                <img src="../icons/apple-touch-icon.png" width="50" height="50" alt="">
-                <b>Cyber Guard </b>
-              </a>
-              <div>
-                <a href="./notification.html"><img style="cursor: pointer;" src="../icons/bell.png" alt="" width="25" height="25"></a>
-                <img style="cursor: pointer;" src="../icons/settings (1).png" alt="" width="25" height="25">
-              </div>
-            </div>
-          </nav>
-        <!-- first div -->
+  <div class="container-fluid p-0">
+    <nav style="background-color: #002D62;height: 70px;" class="navbar sticky-top">
+      <div class="container-fluid">
+        <a style="color: #5DCAD1;" class="navbar-brand" href="#">
+          <img src="../icons/apple-touch-icon.png" width="50" height="50" alt="">
+          <b>Cyber Guard </b>
+        </a>
+        <div>
+          <a href="./notification.html"><img style="cursor: pointer;" src="../icons/bell.png" alt="" width="25"
+              height="25"></a>
+          <img style="cursor: pointer;" src="../icons/settings (1).png" alt="" width="25" height="25">
+        </div>
+      </div>
+    </nav>
+    <!-- first div -->
+    <div class="row">
+      <div class="col-12">
         <div class="row">
-            <div class="col-12">
-            <div class="row">
-                <div class="col-2">
-                    <img src="../icons/Cyber Guard (7).png" alt="" width="150" height="125">
-                </div>
-                <div class="col-9 d-flex justify-content-between">
-                    <h1 class="m-3 mt-4">SSL Certificate</h1>
-                    <a class="mt-4" href="./Dashbord.html"><b>BACK</b></a>
-                </div>
-            </div>
-            </div>
+          <div class="col-2">
+            <img src="../icons/Cyber Guard (7).png" alt="" width="150" height="125">
+          </div>
+          <div class="col-9 d-flex justify-content-between">
+            <h1 class="m-3 mt-4">SSL Certificate</h1>
+            <a class="mt-4" href="./Dashbord.html"><b>BACK</b></a>
+          </div>
         </div>
-      <!-- end of first div -->
+      </div>
+    </div>
+    <!-- end of first div -->
 
-      <!-- second div -->
-      <div style="background-color: #D4EDDA;min-height: 40px"  class="row rounded-3 mt-3 m-1">
-        <div class="col-12">
-
-            <div class="row mt-3">
-              <div class="col-12 d-flex justify-content-center align-content-center">
-                <div class="container">
-                    <div class="row">
-                        <h6>ISSUED TO: <span id="issued_to"></span></h6>
-                    </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row  mt-3">
-              <div class="col-12 d-flex justify-content-center align-content-center">
-                <div class="container">
-                    <div class="row">
-                        <h6>ISSUED BY: <span id="issued_by"></span></h6>
-                    </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row  mt-3">
-              <div class="col-12 d-flex justify-content-center align-content-center">
-                <div class="container">
-                    <div class="row">
-                        <h6>VALIDITY PERIOD:<span id="valid_period"></span></h6>
-                    </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row  mt-3">
-              <div class="col-12 d-flex justify-content-center align-content-center">
-                <div class="container">
-                    <div class="row">
-                        <h6>figer prints</h6>
-                        <h6 class="mt-2">Public Key: <span id="public_key"></span></h6>
-                        <h6 class="mt-2">Certificate: <span id="certificate"></span></h6>
-                    </div>
-                </div>
-              </div>
-            </div>
-
+    <div class="row mt-3">
+      <div class="col-12 d-flex justify-content-center align-content-center">
+        <div class="container">
+          <div class="row">
+            <div style="font-weight: 900;font-size: 20px;" id="ssl_domain" class="text-center mb-2"></div>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- second div -->
+    <div style="background-color: #D4EDDA;min-height: 40px" class="row rounded-3 mt-4 m-1">
+      <div class="col-12">
+        <div class="container-fluid">
+          <div class="row">
+            <div id="ssl_info" class="alert alert-info mt-2" role="alert">
+              <div class="d-flex justify-content-center">
+                <div class="spinner-border" role="status"></div>
+              </div>
+              Retrieving SSL certificate details...
+            </div>
+            <div class="mb-3">
+              <h6>
+                <span>Issued To:</span>
+                <span style="color: #004369;" id="issued_to">N/A</span>
+              </h6>
+              <h6>
+                <span>Issued By:</span>
+                <span style="color: #004369;" id="issued_by">N/A</span>
+              </h6>
+              <h6>
+                <span>Valid Period:</span>
+                <span style="color: #004369;" id="valid_period">N/A</span>
+              </h6>
+              <h6>Status: <span class="text-success" id="is_valid">N/A</span></h6>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- end of second div -->
-    </div>
-    <footer class="mt-4">
-        <div style="background-color: #002D62;height: 40px;color: #00F5FF;" class="container">
-            <div class="row mt-2">
-                <div class="col-4">
-                    <p style="text-align: end;"><b>Support</b></p>
-                </div>
-                <div class="col-4">
-                    <p><a href="#"><b>Privacy Policy</b></a></p>
-                </div>
-                <div class="col-4">
-                    <p style="text-align: left;"><b>Version: 1.0</b></p>
-                </div>
-            </div>
+
+  </div>
+  <footer class="mt-4">
+    <div style="background-color: #002D62;height: 40px;color: #00F5FF;" class="container">
+      <div class="row mt-2">
+        <div class="col-4">
+          <p style="text-align: end;"><b>Support</b></p>
         </div>
-    </footer>
-    <script src="bundle_ssl.js"></script>
+        <div class="col-4">
+          <p><a href="#"><b>Privacy Policy</b></a></p>
+        </div>
+        <div class="col-4">
+          <p style="text-align: left;"><b>Version: 1.0</b></p>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script src="../src/ssl.js"></script>
 </body>
+
 </html>
