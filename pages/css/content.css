@@ -1,0 +1,11 @@
+.phishing-link {
+    color: red;
+    font-weight: bold;
+    border: 2px solid red;
+    padding: 2px;
+    border-radius: 4px;
+  }
+  
+  .phishing-link:hover {
+    background-color: #f5d0d0;
+  }

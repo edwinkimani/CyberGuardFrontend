@@ -1,86 +1,86 @@
-window.onload = () => {
-  const links = Array.from(document.querySelectorAll("[href]"))
+//this is the function that is running to get all the links from a page
+//the function collects the links and sends them to the sw.js where it is send to the backend to be checked
+//***************
+//start
+function collectLinks() {
+  // Collect all the links on the page, excluding unwanted URLs
+  const links = Array.from(document.querySelectorAll("a"))
     .map((element) => element.href)
     .filter((href) => 
-      typeof href === "string" && // Ensure href is a string
-      href.trim() !== "" && // Check for non-empty strings
-      !href.includes("www.google.com") // Exclude www.google.com links
+      typeof href === "string" && 
+      href.trim() !== "" &&
+      !href.includes("www.google.com") &&
+      !href.includes("www.googleadservices.com")
     );
 
-  console.log("Collected Links:", links); // Debugging line
-
-  // Send the collected links to the background script
-  chrome.runtime.sendMessage({ action: 'phishingLink', links }, (response) => {
-    console.log("Response from background script:", response); // Debugging line
-    // Handle the response from the background script
-    if (response.phishingLinks) {
-      response.phishingLinks.forEach((phishingLink) => {
-        // Highlight the phishing links in red
-        const linkElements = document.querySelectorAll(
-          `a[href="${phishingLink}"]`
-        );
-        linkElements.forEach((link) => {
-          link.style.color = "red";
-          link.style.fontWeight = "bold";
-        });
-      });
-    }
-  });
-};
-
-// Function to block search and display a warning
-function blockSearch(query) {
-  alert(
-    `The search query "${query}" contains blocked words and has been prevented.`
-  );
+  return links;
 }
 
-// Listen for changes in the search input field
-document.addEventListener("input", (event) => {
-  if (event.target.matches('input[type="search"], input[name="q"]')) {
-    const searchQuery = event.target.value;
+function highlightPhishingLinks(foundUrls) {
+  if (!Array.isArray(foundUrls)) {
+    console.error("Invalid foundUrls format:", foundUrls);
+    return; // Exit if foundUrls is not an array
+  }
 
-    // Send message to background script to check for blocked words
-    chrome.runtime.sendMessage(
-      { type: "checkSearch", query: searchQuery },
-      (response) => {
-        if (response.blocked) {
-          blockSearch(searchQuery);
-          event.target.value = ""; // Clear the search input
-        }
-      }
-    );
+  foundUrls.forEach((phishingLink) => {
+    // Escape the URL for proper selection
+    const escapedUrl = phishingLink.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special characters
+    const linkElements = document.querySelectorAll(`a[href="${escapedUrl}"]`); // Use escaped URL in selector
+
+    linkElements.forEach((link) => {
+      // Highlight the link with class and visual indicator (optional)
+      link.classList.add("phishing-link");
+      link.style.backgroundColor = "red"; // Example visual indicator (optional)
+      link.style.color = "white"; // Example visual indicator (optional)
+
+      // Optionally, add a warning message near the link
+      const warningElement = document.createElement("span");
+      warningElement.textContent = "Warning: Phishing Link!";
+      warningElement.style.color = "red";
+      warningElement.style.fontSize = "smaller";
+      link.parentNode.insertBefore(warningElement, link.nextSibling);
+    });
+  });
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "phishingLinksFound") {
+    if (!chrome.runtime.id) {
+      highlightPhishingLinks(request.foundUrls);
+      return;
+    }
+      return;
   }
 });
 
-if ("sw" in navigator) {
-  navigator.serviceWorker
-    .register("/sw.js", { type: "module" })
-    .then((reg) => console.log("Service Worker registered:", reg))
-    .catch((err) => console.error("Service Worker registration failed:", err));
+function scanLinks() {
+  // Collect links and send to background script
+  if (!chrome.runtime.id) {
+    console.error("Extension context invalidated. Re-injecting content script...");
+    chrome.runtime.onInstalled.addListener(() => {
+      // Content script re-injection logic goes here (explained in step 2)
+      chrome.tabs.executeScript(null, { file: "content.js" });
+    });
+    return;
+  }
+  const links = collectLinks();
+  chrome.runtime.sendMessage({ action: "phishingLink", links });
 }
 
-// Function to block an element
-function blockElement(element) {
-  element.style.display = "none";
-}
+scanLinks();
 
-// Function to display a notification
-function displayNotification(message) {
-  console.log(message); // For debugging
-  // You can use browser.notifications.create() for more advanced notifications
-}
-
-// Select all ad elements
-const adElements = document.querySelectorAll(".ad, .adsbygoogle, #ad-div");
-
-// Block each ad element
-adElements.forEach((adElement) => {
-  blockElement(adElement);
+// Observe DOM changes and trigger scanLinks on navigation and significant changes
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.type === 'childList' || mutation.type === 'attributes' && mutation.attributeName === 'href') {
+      scanLinks();
+    }
+  });
 });
 
-// Display a notification
-displayNotification("Ads blocked successfully!");
+observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] });
+//***************
+//end
 
 (function () {
   // Enable The Undetected Adblocker

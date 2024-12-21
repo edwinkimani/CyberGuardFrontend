@@ -1,5 +1,6 @@
 import { fetchProxies, clearProxySettings } from "./utilities/storage.js";
 import { setProxyChaining } from "./utilities/proxy.js";
+// import { getSiteFromDB  } from './utilities/db.js';
 
 let block18SitesEnabled = false;
 
@@ -100,7 +101,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 //**********
 //end
 
-
 //**this block of code is responsible for blocking phishing sites that the user
 // visits in the browser */
 //start
@@ -108,66 +108,53 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
     const url = tab.url;
-
     const parsedUrl = new URL(url);
-    // Skip if URL is the BlockPage.html or if it's a new tab page
+
+    // Skip URLs for internal browser pages or specific exclusions
     if (
       url.includes("BlockPage.html") ||
       url === "chrome://newtab/" ||
-      url === "edge://newtab/"
-    ) {
-      return; // Early return if the URL matches the conditions
-    }
-
-    // Skip if URL starts with 'chrome://' or 'chrome-extension://' or 'edge://'
-    if (
+      url === "edge://newtab/" ||
       url.startsWith("chrome://") ||
       url.startsWith("chrome-extension://") ||
       url.startsWith("edge://")
     ) {
-      return; // Early return if the URL is a browser internal page
+      return; // Early exit
     }
 
-    // Check if the URL exists in IndexedDB
+    // Send the URL to the backend API for phishing check
     try {
-      const data = await getDataByValue(parsedUrl.origin); // Check if the URL is in IndexedDB
-      if (data) {
-        tabUrls.set(tabId, parsedUrl.origin);
-        console.log("Data found for URL:", data);
-        return; // Stop further execution if data is found
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/phishing-check-url`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url: parsedUrl }), // Pass the URL in the request body
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Network response was not ok (status ${response.status})`);
+      }
+
+      const responseData = await response.json();
+      if (responseData.item === true) {
+        console.log("Phishing URL detected:", parsedUrl.origin);
+        // Redirect to the block page
+        chrome.tabs.update(tabId, {
+          url: chrome.runtime.getURL("/pages/BlockPagePhishing.html"),
+        });
+      } else {
+        console.log("URL is safe:", parsedUrl.origin);
       }
     } catch (error) {
-      console.log("No data found for the URL in IndexedDB or error:", error);
+      console.error("Error checking URL with the backend:", error);
     }
-    // Fetch the URL list from your server to see if it should be blocked
-    fetch(
-      `http://127.0.0.1:8000/api/phishing-checks/${encodeURIComponent(
-        parsedUrl.origin
-      )}`,
-      {
-        method: "GET",
-      }
-    )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(
-            `Network response was not ok (status ${response.status})`
-          );
-        }
-        return response.json();
-      })
-      .then((responseData) => {
-        if (responseData.item === true) {
-          chrome.tabs.update(tabId, {
-            url: chrome.runtime.getURL("/pages/BlockPagePhissing.html"),
-          });
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching the URL list:", error);
-      });
   }
 });
+
 //**********
 //end
 
@@ -206,15 +193,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 //**********
 //end
-// Function to check domain matching
-function checkDomainMatch(cert, url) {
-  const hostname = new URL(url).hostname;
-  let cn = cert.subject.CN; // Adjust how you extract the CN
-  let sans = cert.subject.SANs; // Adjust how you extract SANs (if available)
-  // Check if the hostname matches the CN or any of the SANs
-  return hostname === cn || (sans && sans.includes(hostname));
-}
-
 //function that removes the tab from the map when the tab is closed
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   try {
@@ -244,27 +222,25 @@ async function removeDataByValue(url) {
 
   getAllRequest.onsuccess = (event) => {
     const allRecords = event.target.result;
-    console.log("All records:", allRecords);  // Log all records to check the data
-  
+    console.log("All records:", allRecords); // Log all records to check the data
+
     if (!Array.isArray(allRecords)) {
       console.error("Expected an array but got:", allRecords);
       return;
     }
-  
+
     const baseUrl = new URL(url).origin;
-  
-    const recordsToDelete = allRecords.filter(
-      (record) => record.value === url
-    );
-  
+
+    const recordsToDelete = allRecords.filter((record) => record.value === url);
+
     if (recordsToDelete.length > 0) {
       recordsToDelete.forEach((record) => {
         const deleteRequest = store.delete(record.id);
-  
+
         deleteRequest.onsuccess = () => {
           console.log("Successfully removed:", record.value);
         };
-  
+
         deleteRequest.onerror = (event) => {
           console.error("Error removing data:", event);
         };
@@ -273,7 +249,6 @@ async function removeDataByValue(url) {
       console.log("No matching URLs found in IndexedDB:", baseUrl);
     }
   };
-  
 
   getAllRequest.onerror = (event) => {
     console.error("Error getting all data:", event);
@@ -337,7 +312,6 @@ function getDataByValue(valueToFind) {
 
 // Background script (sw.js)
 let proxyList;
-let isProxyEnabled = false;
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed.");
@@ -402,39 +376,32 @@ async function checkPasswordStrength(password) {
   return (score / 4) * 100; // Convert to percentage
 }
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  console.log(`this is the link to the ${message}`);
-  if (message.links) {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+  console.log("Received request:", request); // Debugging line
+  if (request.action === "phishingLink" && request.links) {
     try {
-      // Send links to the backend for phishing validation
-      const phishingResults = await validateLinksWithBackend(message.links);
-
-      if (phishingResults && phishingResults.length > 0) {
-        console.warn("Phishing links found:", phishingResults);
-        // Send phishing links to the popup or notify the user
+      const data = await validateLinksWithBackend(request.links);
+      console.log("Backend Response:", data); // Debugging line
+      if (data) {
+        console.log("Found phishing links:", data.foundUrls);
+        chrome.runtime.sendMessage({
+          action: "phishingLinksFound",
+          foundUrls: data.foundUrls
+        });
       } else {
-        console.log("No phishing links detected.");
+        console.warn("Invalid response format, 'foundUrls' missing.");
       }
     } catch (error) {
-      console.error("Error validating links with backend:", error);
+      console.error("Error validating links:", error);
     }
   }
+  return true; // Keeps the message channel open for async response
 });
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  const phishingUrls = []; // Example list
-  if (request.links) {
-    const phishingLinks = request.links.filter((link) =>
-      phishingUrls.includes(link)
-    );
-     // Send back the phishing links to the content script
-    validateLinksWithBackend({ phishingLinks });
-  }
-});
+
 
 // Function to send collected links to the backend for validation
 const validateLinksWithBackend = async (links) => {
-  console.log("Collected Links:", links); // Add this line to check the links array
   try {
     const response = await fetch("http://127.0.0.1:8000/api/phishing-checks/", {
       method: "POST",
@@ -444,15 +411,11 @@ const validateLinksWithBackend = async (links) => {
       body: JSON.stringify({ urls: links }),
     });
 
-    // if (!response.ok) {
-    //   const errorText = await response.text();
-    //   console.error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
-    //   throw new Error(`HTTP error! Status: ${response.status}`);
-    // }
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
 
-    const data = await response.json();
-    console.log("Backend Response:", data);
-    return data;
+    return await response.json();
   } catch (error) {
     console.error("Error contacting backend:", error);
     throw error;
@@ -586,7 +549,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-
 chrome.action.onClicked.addListener(async (tab) => {
   const tabId = tab.id;
   if (!tabId) return;
@@ -619,7 +581,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 //get ssl infomation from the content script and send it to the popup page
-//*********** 
+//***********
 //start
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "getSSLInfo") {
@@ -628,24 +590,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const url = tabs[0].url;
         const baseUrl = getBaseUrl(url);
 
-       await getSSLCertificateInfo(baseUrl)
+        await getSSLCertificateInfo(baseUrl)
           .then((sslInfo) => {
             chrome.runtime.sendMessage({
               action: "updateSSLInfo",
-              sslInfo: sslInfo
+              sslInfo: sslInfo,
             });
           })
           .catch((error) => {
             console.error("Error fetching SSL data:", error);
             chrome.runtime.sendMessage({
               action: "updateSSLInfo",
-              sslInfo: null
+              sslInfo: null,
             });
           });
       } else {
         chrome.runtime.sendMessage({
           action: "updateSSLInfo",
-          sslInfo: null
+          sslInfo: null,
         });
       }
     });
@@ -662,9 +624,9 @@ async function getSSLCertificateInfo(baseUrl) {
     const response = await fetch("http://127.0.0.1:8000/api/sslCertificate", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ domain: baseUrl })
+      body: JSON.stringify({ domain: baseUrl }),
     });
     const data = await response.json();
     return data.data;
@@ -679,6 +641,212 @@ async function getSSLCertificateInfo(baseUrl) {
 //implement safe search in the background script. this script is used to send the message to the content script
 //**********
 //start
+
+//**********
+//end
+
+//implement a listener for the time left for a site. the timer is used to see if
+// the the time has passed for a site to be blocked
+//**********
+//start
+//store the url and the time in the indexDB
+// Function to open the IndexedDB and create stores if necessary
+function openDatabaseStoreUrl() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("MyExtensionDatabase", 1);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      // Create the object store with domain as the key path
+      if (!db.objectStoreNames.contains("urlTimeoutStore")) {
+        const store = db.createObjectStore("urlTimeoutStore", {
+          keyPath: "domain",
+        });
+        store.createIndex("expiresAt", "expiresAt", { unique: false });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = (event) =>
+      reject(`Database error: ${event.target.error}`);
+  });
+}
+
+// Function to add URL and timeout to IndexedDB (in the new "urlTimeoutStore")
+function addData(domain, timeout, addedAt, expiresAt) {
+  return new Promise((resolve, reject) => {
+    try {
+      openDatabaseStoreUrl() // Assuming this returns a Promise with the database object
+        .then((db) => {
+          const transaction = db.transaction(["urlTimeoutStore"], "readwrite");
+          const store = transaction.objectStore("urlTimeoutStore");
+
+          const data = {
+            domain: domain, // Domain is now the key
+            timeout: timeout,
+            expiresAt: expiresAt,
+            addedAt: addedAt, // Use the passed addedAt value
+          };
+
+          const request = store.add(data); // Add data to the new object store
+
+          request.onsuccess = () =>
+            resolve("Data added successfully to URL Timeout store");
+          request.onerror = (event) => {
+            reject(`Error adding data: ${event.target.error.message}`);
+          };
+        })
+        .catch((error) => reject(`Database error: ${error}`));
+    } catch (error) {
+      reject(`Invalid URL format: ${error.message}`);
+    }
+  });
+}
+
+// Function to check if the URL exists in IndexedDB and retrieve it
+// Check if the URL exists in IndexedDB and compare the timeout
+async function checkUrlInDatabase(url) {
+  return new Promise((resolve, reject) => {
+    try {
+      // Validate URL format
+      if (!url || !isValidUrl(url)) {
+        return;
+      }
+
+      // Extract domain from URL
+      const domain = new URL(url).hostname;
+
+      // Open IndexedDB
+      const request = indexedDB.open("MyExtensionDatabase", 1);
+
+      request.onerror = (event) => {
+        console.error("Database error:", event.target.error);
+        reject("Failed to open database.");
+      };
+
+      request.onsuccess = (event) => {
+        const db = event.target.result;
+        const transaction = db.transaction(["urlTimeoutStore"], "readonly"); // Use correct store name
+        const store = transaction.objectStore("urlTimeoutStore"); // Use correct store name
+        const query = store.get(domain); // Query by domain directly
+
+        query.onsuccess = () => {
+          const data = query.result;
+          if (data) {
+            const currentTime = Date.now();
+            const expirationTime =
+              new Date(data.addedAt).getTime() + data.timeout * 60 * 1000;
+
+            if (currentTime > expirationTime) {
+              console.log(`Site expired: ${domain}`);
+              resolve(null); // The site has expired
+            } else {
+              console.log(`Site is still valid: ${domain}`);
+              resolve(data); // The site is valid
+            }
+          } else {
+            console.log(`Site not found in DB: ${domain}`);
+            resolve(null); // Site not found
+          }
+        };
+
+        query.onerror = (event) => {
+          console.error("Error querying database:", event.target.error);
+          reject("Error querying database.");
+        };
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains("urlTimeoutStore")) {
+          const store = db.createObjectStore("urlTimeoutStore", {
+            keyPath: "domain", // Ensure the keyPath is domain
+          });
+          store.createIndex("expiresAt", "expiresAt", { unique: false });
+        }
+      };
+    } catch (error) {
+      console.error("Error extracting domain:", error);
+      reject("Error processing URL.");
+    }
+  });
+}
+function isValidUrl(url) {
+  const pattern = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z0-9]{2,7}(\/[\w#]*)?$/i;
+  return pattern.test(url);
+}
+// Listen for messages from popup to add URLs and timeouts
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "add-site") {
+    const { domain, timeout, addedAt, expiresAt } = message;
+
+    // Call the addData function for the new URL Timeout store
+    addData(domain, timeout, addedAt, expiresAt)
+      .then((successMessage) => {
+        console.log(successMessage);
+        sendResponse({ success: true, message: successMessage });
+      })
+      .catch((error) => {
+        console.error(error);
+        sendResponse({ success: false, message: error });
+      });
+
+    return true; // Return true to indicate asynchronous response
+  }
+});
+
+// Listen for tab updates and check the URL against IndexedDB
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url) {
+    const url = tab.url;
+
+    // Skip specific URLs like 'BlockPage.html' and internal URLs
+    if (
+      url.includes("BlockPage.html") ||
+      url === "chrome://newtab/" ||
+      url === "edge://newtab/" ||
+      url.startsWith("chrome://") ||
+      url.startsWith("chrome-extension://") ||
+      url.startsWith("edge://")
+    ) {
+      return;
+    }
+
+    try {
+      // Check if URL exists in the database and if it has expired
+      checkUrlInDatabase(tab.url)
+        .then((data) => {
+          if (data) {
+            const currentTime = new Date().getTime();
+            const expirationTime = data.expiresAt; // Get stored expiration time
+
+            // Compare current time with expiration time
+            if (currentTime > expirationTime) {
+              console.log(`Blocking expired site: ${url}`);
+              blockPage(tabId); // Block expired page
+            } else {
+              console.log(`Site is still valid: ${url}`);
+            }
+          } else {
+            console.log(`No expiration data found for site: ${url}`);
+          }
+        })
+        .catch((error) => {
+          console.error("Error checking URL in database:", error);
+        });
+    } catch (error) {
+      console.error("Error processing tab URL:", error);
+    }
+  }
+});
+
+
+// Block the page by redirecting to a blocked page
+function blockPage(tabId) {
+  chrome.tabs.update(tabId, {
+    url: chrome.runtime.getURL("/pages/BlockPageTimeOut.html"), // Redirect to a custom blocked page
+  });
+}
 
 //**********
 //end
