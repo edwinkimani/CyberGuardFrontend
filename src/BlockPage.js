@@ -96,12 +96,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function openDatabase() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open("MyExtensionDatabase", 1);
+      const request = indexedDB.open("AllowedSites", 1);
   
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
-        if (!db.objectStoreNames.contains("myObjectStore")) {
-          db.createObjectStore("myObjectStore", { keyPath: "id", autoIncrement: true });
+        if (!db.objectStoreNames.contains("allowedSitesURL")) {
+          db.createObjectStore("allowedSitesURL", { keyPath: "id", autoIncrement: true });
         }
       };
   
@@ -117,8 +117,8 @@ function openDatabase() {
 
 function addData(data) {
     openDatabase().then((db) => {
-      const transaction = db.transaction(["myObjectStore"], "readwrite");
-      const store = transaction.objectStore("myObjectStore");
+      const transaction = db.transaction(["allowedSitesURL"], "readwrite");
+      const store = transaction.objectStore("allowedSitesURL");
   
       const request = store.add(data);
       request.onsuccess = () => console.log("Data added successfully.");

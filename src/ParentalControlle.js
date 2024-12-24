@@ -1,3 +1,7 @@
+// Toast elements
+const toastElement = document.getElementById("liveToast");
+const messageParagraph = document.querySelector(".message");
+
 function updateToggleState(event) {
   const name = event.target.id; // Get the id of the checkbox that was changed
   chrome.storage.sync.set({ [name]: event.target.checked }, function () {
@@ -58,92 +62,105 @@ document.getElementById("myForm").addEventListener("submit", function (e) {
 
 // Function to handle the add-site action
 function handleAddSite(event) {
-    event.preventDefault(); // Prevent form submission
-  
-    const urlInput = document.getElementById("timeOutUrl").value.trim();
-    const timeOutInput = document.getElementById("timeInput").value.trim();
-    const [hours, minutes] = timeOutInput.split(":").map(Number);
-  
-    // Toast elements
-    const toastElement = document.getElementById("liveToast");
-    const messageParagraph = document.querySelector(".message");
-  
-    // Input Validation
-    if (
-      !urlInput ||
-      isNaN(hours) ||
-      isNaN(minutes) ||
-      hours < 0 ||
-      minutes < 0 ||
-      minutes >= 60
-    ) {
-      messageParagraph.textContent =
-        "Invalid input! Please provide a valid URL and timeout.";
-      toastElement.classList.remove("bg-success");
-      toastElement.classList.add("bg-danger");
-  
-      const toast = new bootstrap.Toast(toastElement);
-      toast.show();
-      return;
-    }
-  
-    try {
-      // Extract domain from URL
-      const url = new URL(urlInput);
-      const domain = url.hostname; // e.g., "example.com"
-      console.log(`Adding site: ${domain}`);
-  
-      // Get the current time
-      const currentTime = new Date();
-      
-      // Calculate the duration to add based on the input
-      currentTime.setMinutes(currentTime.getMinutes() + (hours * 60) + minutes); // Add the user input time to current time
-  
-      // Store the expiration time as the new time
-      const expiresAt = currentTime.getTime(); // Get expiration time in milliseconds
-  
-      // Log values for debugging
-      console.log(`Current time: ${new Date()}`);
-      console.log(`Expires at: ${new Date(expiresAt)}`);
-  
-      // Send data to background script
-      chrome.runtime.sendMessage(
-        {
-          type: "add-site",
-          domain: domain, // Store domain instead of full URL
-          addedAt: Date.now(), // Log when the site was added
-          timeout: `${hours}:${minutes}`, // User-provided time as hh:mm format
-          expiresAt: expiresAt, // Expiration timestamp
-        },
-        function (response) {
-          if (response.success) {
-            messageParagraph.textContent = `Site added: ${domain} with a time limit of ${timeOutInput} (expires at ${new Date(expiresAt).toLocaleTimeString()}).`;
-            toastElement.classList.remove("bg-danger");
-            toastElement.classList.add("bg-success");
-          } else {
-            messageParagraph.textContent =
-              "Failed to add site. Please try again.";
-            toastElement.classList.remove("bg-success");
-            toastElement.classList.add("bg-danger");
-          }
-  
-          const toast = new bootstrap.Toast(toastElement);
-          toast.show();
-  
-          // Clear form after success
-          document.getElementById("timeOutForm").reset();
-        }
-      );
-    } catch (error) {
-      messageParagraph.textContent = "Invalid URL format.";
-      toastElement.classList.remove("bg-success");
-      toastElement.classList.add("bg-danger");
-  
-      const toast = new bootstrap.Toast(toastElement);
-      toast.show();
-    }
+  event.preventDefault(); // Prevent form submission
+
+  const urlInput = document.getElementById("timeOutUrl").value.trim();
+  const startTimeInput = document.getElementById("start-time-Input").value.trim();
+  const endTimeInput = document.getElementById("end-time-Input").value.trim();
+
+  // Parse start and end time inputs into hours and minutes
+  const [startHours, startMinutesInput] = startTimeInput.split(":").map(Number);
+  const [endHours, endMinutesInput] = endTimeInput.split(":").map(Number);
+
+  // Check if start and end times are valid
+  if (
+    isNaN(startHours) ||
+    isNaN(endHours) ||
+    startHours > 23 ||
+    endHours > 23 ||
+    startMinutesInput > 59 ||
+    endMinutesInput > 59
+  ) {
+    messageParagraph.textContent =
+      "Invalid input! Please provide a valid URL and timeout.";
+    toastElement.classList.remove("bg-success");
+    toastElement.classList.add("bg-danger");
+
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    return;
   }
-  
+
+  try {
+    let urlInputWithProtocol = urlInput;
+
+    // Ensure the URL has a protocol (http:// or https://)
+    if (!/^https?:\/\//i.test(urlInput)) {
+      urlInputWithProtocol = `https://${urlInput}`; // Add default protocol
+    }
+
+    // Try creating the URL object
+    const url = new URL(urlInputWithProtocol);
+    const domain = url.hostname; // e.g., "example.com"
+    console.log(`Adding site: ${domain}`);
+
+    // Calculate the time in minutes for start and end time
+    function timeToMinutes(hours, minutes) {
+      return hours * 60 + minutes;
+    }
+
+    // Calculate start and end times in minutes
+    const startMinutes = timeToMinutes(startHours, startMinutesInput);
+    const endMinutes = timeToMinutes(endHours, endMinutesInput);
+
+    // Adjust for overnight time range (if the end time is before the start time)
+    let adjustedEndMinutes = endMinutes;
+    if (endMinutes < startMinutes) {
+      adjustedEndMinutes += 24 * 60; // Add 24 hours (in minutes)
+    }
+
+    const startAt = startMinutes;
+    const expiresAt = adjustedEndMinutes;
+
+    // Send data to background script
+    chrome.runtime.sendMessage(
+      {
+        type: "add-site",
+        domain: domain, // Store domain instead of full URL
+        addedAt: Date.now(), // Log when the site was added
+        startAt: startAt, // Store start time in minutes
+        expiresAt: expiresAt, // Store end time in minutes
+      },
+      function (response) {
+        if (response.success) {
+          messageParagraph.textContent = `Site added: ${domain} with a time limit from ${startTimeInput} to ${endTimeInput}.`;
+          toastElement.classList.remove("bg-danger");
+          toastElement.classList.add("bg-success");
+        } else {
+          messageParagraph.textContent =
+            "Failed to add site. Please try again.";
+          toastElement.classList.remove("bg-success");
+          toastElement.classList.add("bg-danger");
+        }
+
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+
+        // Clear form after success
+        document.getElementById("timeOutForm").reset();
+      }
+    );
+  } catch (error) {
+    console.error("Error parsing URL:", error);
+    messageParagraph.textContent = "Invalid URL format.";
+    toastElement.classList.remove("bg-success");
+    toastElement.classList.add("bg-danger");
+
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+  }
+}
+
 
 // Bind event listener to form in parentControl.js
 document
@@ -175,59 +192,6 @@ function openDatabaseStoreUrl() {
     request.onerror = (event) =>
       reject(`Database error: ${event.target.error}`);
   });
-}
-
-// Function to edit a timeout by URL
-function editTimeout(domain) {
-  const newTimeout = prompt("Enter new timeout (in minutes):");
-
-  if (newTimeout && !isNaN(newTimeout) && newTimeout > 0) {
-    // Convert the user input to minutes
-    const newTimeoutMinutes = convertToMinutes(newTimeout);
-
-    openDatabaseStoreUrl()
-      .then((db) => {
-        const transaction = db.transaction(["urlTimeoutStore"], "readwrite");
-        const store = transaction.objectStore("urlTimeoutStore");
-
-        const request = store.get(domain); // Use domain (extracted from URL) as key
-
-        request.onsuccess = (event) => {
-          const data = request.result;
-
-          if (data) {
-            // Calculate the new expiration time based on current time + new timeout
-            const currentTime = Date.now();
-            const newExpiresAt = currentTime + newTimeoutMinutes * 60 * 1000; // New timeout in ms
-
-            // Update the expiration time
-            data.expiresAt = newExpiresAt;
-
-            const updateRequest = store.put(data); // Put the updated data back
-
-            updateRequest.onsuccess = () => {
-              console.log(`Timeout for ${domain} updated successfully.`);
-              displayTimeouts(); // Refresh the displayed list
-            };
-
-            updateRequest.onerror = (event) => {
-              console.error("Error updating timeout:", event);
-            };
-          } else {
-            console.log(`No entry found for domain: ${domain}`);
-          }
-        };
-
-        request.onerror = (event) => {
-          console.error("Error retrieving data for edit:", event);
-        };
-      })
-      .catch((error) => {
-        console.error("Database error:", error);
-      });
-  } else {
-    alert("Please enter a valid timeout value.");
-  }
 }
 
 // Function to delete a timeout by URL
@@ -296,15 +260,16 @@ function displayTimeouts() {
 
           // Format the addedAt and timeout for display
           const addedAt = new Date(data.addedAt).toLocaleString();
-          const timeoutInMinutes = data.timeout;
-
+          const startAt = data.startAt;
+          const expiresAt = data.expiresAt;
+          
           // Create the list item with buttons
           timeoutElement.innerHTML = `
               <strong class="mt-4">URL:</strong> ${data.domain} <br>
               <strong>Added at:</strong> ${addedAt} <br>
-              <strong>Timeout (minutes):</strong> ${timeoutInMinutes} <br>
+              <strong>Start At (minutes):</strong> ${startAt} <br>
+              <strong>Expires At (minutes):</strong> ${expiresAt} <br>
               <button class="btn col-4 btn-danger mt-2" data-action="delete">Delete</button>
-              <button class="btn col-4 btn-warning mt-2" data-action="edit">Edit</button>
             `;
 
           // Append the created list item to the container

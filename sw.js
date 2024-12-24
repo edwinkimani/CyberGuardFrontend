@@ -32,25 +32,19 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     const parsedUrl = new URL(url);
     // Skip if URL is the BlockPage.html or if it's a new tab page
     if (
-      url.includes("BlockPage.html") ||
-      url === "chrome://newtab/" ||
-      url === "edge://newtab/"
+      url.includes("BlockPage.html") || url === "chrome://newtab/" || url === "edge://newtab/"
     ) {
       return; // Early return if the URL matches the conditions
     }
-
     // Skip if URL starts with 'chrome://' or 'chrome-extension://' or 'edge://'
-    if (
-      url.startsWith("chrome://") ||
-      url.startsWith("chrome-extension://") ||
-      url.startsWith("edge://")
+    if (url.startsWith("chrome://") || url.startsWith("chrome-extension://") ||url.startsWith("edge://")
     ) {
       return; // Early return if the URL is a browser internal page
     }
-
     // Check if the URL exists in IndexedDB
     try {
       const data = await getDataByValue(parsedUrl.origin); // Check if the URL is in IndexedDB
+      console.log("this is the data:",data)
       if (data) {
         tabUrls.set(tabId, parsedUrl.origin);
         console.log("Data found for URL:", data);
@@ -136,7 +130,9 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       );
 
       if (!response.ok) {
-        throw new Error(`Network response was not ok (status ${response.status})`);
+        throw new Error(
+          `Network response was not ok (status ${response.status})`
+        );
       }
 
       const responseData = await response.json();
@@ -193,6 +189,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 //**********
 //end
+
 //function that removes the tab from the map when the tab is closed
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   try {
@@ -214,8 +211,8 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 async function removeDataByValue(url) {
   console.log(url);
   const db = await openDatabase();
-  const transaction = db.transaction(["myObjectStore"], "readwrite");
-  const store = transaction.objectStore("myObjectStore");
+  const transaction = db.transaction(["allowedSitesURL"], "readwrite");
+  const store = transaction.objectStore("allowedSitesURL");
 
   // Get all records from the object store
   const getAllRequest = store.getAll();
@@ -257,12 +254,12 @@ async function removeDataByValue(url) {
 // Open the IndexedDB database
 function openDatabase() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("MyExtensionDatabase", 1);
+    const request = indexedDB.open("AllowedSites", 1);
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
-      if (!db.objectStoreNames.contains("myObjectStore")) {
-        db.createObjectStore("myObjectStore", {
+      if (!db.objectStoreNames.contains("allowedSitesURL")) {
+        db.createObjectStore("allowedSitesURL", {
           keyPath: "id",
           autoIncrement: true,
         });
@@ -283,8 +280,8 @@ function getDataByValue(valueToFind) {
   return new Promise((resolve, reject) => {
     openDatabase()
       .then((db) => {
-        const transaction = db.transaction(["myObjectStore"], "readonly");
-        const store = transaction.objectStore("myObjectStore");
+        const transaction = db.transaction(["allowedSitesURL"], "readonly");
+        const store = transaction.objectStore("allowedSitesURL");
 
         const request = store.openCursor(); // Open a cursor to iterate over entries
         let found = false;
@@ -309,6 +306,8 @@ function getDataByValue(valueToFind) {
       .catch((error) => reject("Database error:", error));
   });
 }
+
+
 
 // Background script (sw.js)
 let proxyList;
@@ -386,7 +385,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         console.log("Found phishing links:", data.foundUrls);
         chrome.runtime.sendMessage({
           action: "phishingLinksFound",
-          foundUrls: data.foundUrls
+          foundUrls: data.foundUrls,
         });
       } else {
         console.warn("Invalid response format, 'foundUrls' missing.");
@@ -397,8 +396,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   return true; // Keeps the message channel open for async response
 });
-
-
 
 // Function to send collected links to the backend for validation
 const validateLinksWithBackend = async (links) => {
@@ -655,56 +652,105 @@ function openDatabaseStoreUrl() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("MyExtensionDatabase", 1);
 
+    // Event fired when the database version changes (i.e., upgrading the DB)
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
-      // Create the object store with domain as the key path
+      console.log("Database upgrade required. Creating object store...");
+
       if (!db.objectStoreNames.contains("urlTimeoutStore")) {
         const store = db.createObjectStore("urlTimeoutStore", {
           keyPath: "domain",
         });
         store.createIndex("expiresAt", "expiresAt", { unique: false });
+        console.log("Object store and index created successfully.");
       }
     };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = (event) =>
-      reject(`Database error: ${event.target.error}`);
+    // On successful database opening
+    request.onsuccess = (event) => {
+      console.log("Database opened successfully.");
+      resolve(event.target.result); // Resolve with the database object
+    };
+
+    // Error handling for opening the database
+    request.onerror = (event) => {
+      console.error("Error opening database:", event.target.error);
+      reject(`Database error: ${event.target.error.message}`);
+    };
   });
 }
 
 // Function to add URL and timeout to IndexedDB (in the new "urlTimeoutStore")
-function addData(domain, timeout, addedAt, expiresAt) {
+function addData(domain, addedAt, startAt, expiresAt) {
   return new Promise((resolve, reject) => {
-    try {
-      openDatabaseStoreUrl() // Assuming this returns a Promise with the database object
-        .then((db) => {
-          const transaction = db.transaction(["urlTimeoutStore"], "readwrite");
-          const store = transaction.objectStore("urlTimeoutStore");
+    openDatabaseStoreUrl()
+      .then((db) => {
+        const transaction = db.transaction(["urlTimeoutStore"], "readwrite");
+        const store = transaction.objectStore("urlTimeoutStore");
 
-          const data = {
-            domain: domain, // Domain is now the key
-            timeout: timeout,
-            expiresAt: expiresAt,
-            addedAt: addedAt, // Use the passed addedAt value
-          };
+        const data = {
+          domain: domain,
+          addedAt: addedAt,
+          startAt: startAt,
+          expiresAt: expiresAt,
+        };
 
-          const request = store.add(data); // Add data to the new object store
+        const request = store.add(data);
 
-          request.onsuccess = () =>
-            resolve("Data added successfully to URL Timeout store");
-          request.onerror = (event) => {
-            reject(`Error adding data: ${event.target.error.message}`);
-          };
-        })
-        .catch((error) => reject(`Database error: ${error}`));
-    } catch (error) {
-      reject(`Invalid URL format: ${error.message}`);
-    }
+        // Success handler
+        request.onsuccess = () => {
+          console.log("Data added successfully");
+          resolve("Data added successfully to URL Timeout store");
+        };
+
+        // Error handler
+        request.onerror = (event) => {
+          console.error("Error adding data:", event.target.error);
+          reject(`Error adding data: ${event.target.error.message}`);
+        };
+
+        // Transaction success handler
+        transaction.oncomplete = () => {
+          console.log("Transaction completed successfully.");
+        };
+
+        // Transaction error handler
+        transaction.onerror = (event) => {
+          console.error("Transaction failed:", event.target.error);
+          reject(`Transaction error: ${event.target.error.message}`);
+        };
+      })
+      .catch((error) => reject(`Database error: ${error}`));
   });
 }
 
 // Function to check if the URL exists in IndexedDB and retrieve it
 // Check if the URL exists in IndexedDB and compare the timeout
+
+function isValidUrl(url) {
+  const pattern = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z0-9]{2,7}(\/[\w#]*)?$/i;
+  return pattern.test(url);
+}
+// Listen for messages from popup to add URLs and timeouts
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "add-site") {
+    const { domain, addedAt, startAt, expiresAt } = message;
+
+    // Call the addData function for the new URL Timeout store
+    addData(domain, addedAt, startAt, expiresAt)
+      .then((successMessage) => {
+        console.log(successMessage);
+        sendResponse({ success: true, message: successMessage });
+      })
+      .catch((error) => {
+        console.error(error);
+        sendResponse({ success: false, message: error });
+      });
+
+    return true; // Return true to indicate asynchronous response
+  }
+});
+
 async function checkUrlInDatabase(url) {
   return new Promise((resolve, reject) => {
     try {
@@ -752,7 +798,7 @@ async function checkUrlInDatabase(url) {
 
         query.onerror = (event) => {
           console.error("Error querying database:", event.target.error);
-          reject("Error querying database.");
+          return;
         };
       };
 
@@ -771,32 +817,9 @@ async function checkUrlInDatabase(url) {
     }
   });
 }
-function isValidUrl(url) {
-  const pattern = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z0-9]{2,7}(\/[\w#]*)?$/i;
-  return pattern.test(url);
-}
-// Listen for messages from popup to add URLs and timeouts
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "add-site") {
-    const { domain, timeout, addedAt, expiresAt } = message;
-
-    // Call the addData function for the new URL Timeout store
-    addData(domain, timeout, addedAt, expiresAt)
-      .then((successMessage) => {
-        console.log(successMessage);
-        sendResponse({ success: true, message: successMessage });
-      })
-      .catch((error) => {
-        console.error(error);
-        sendResponse({ success: false, message: error });
-      });
-
-    return true; // Return true to indicate asynchronous response
-  }
-});
 
 // Listen for tab updates and check the URL against IndexedDB
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
     const url = tab.url;
 
@@ -813,19 +836,41 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
 
     try {
+      const data = await getDataByValue(parsedUrl.origin); // Check if the URL is in IndexedDB
+      if (data) {
+        tabUrls.set(tabId, parsedUrl.origin);
+        console.log("Data found for URL:", data);
+        return; // Stop further execution if data is found
+      }
+    } catch (error) {
+      console.log("No data found for the URL in IndexedDB or error:", error);
+    }
+
+    try {
       // Check if URL exists in the database and if it has expired
       checkUrlInDatabase(tab.url)
         .then((data) => {
           if (data) {
-            const currentTime = new Date().getTime();
-            const expirationTime = data.expiresAt; // Get stored expiration time
+            const currentTime = new Date();
+            const currentMinutes =
+              currentTime.getHours() * 60 + currentTime.getMinutes(); // Get current time in minutes (since midnight)
 
-            // Compare current time with expiration time
-            if (currentTime > expirationTime) {
-              console.log(`Blocking expired site: ${url}`);
-              blockPage(tabId); // Block expired page
+            const startAt = data.startAt; // Start time in minutes (from DB)
+            const expiresAt = data.expiresAt; // End time in minutes (from DB)
+
+            // Handle cases where end time (expiresAt) might be the next day (overnight range)
+            if (expiresAt < startAt) {
+              // If the end time is less than the start time, it means it's an overnight range.
+              if (currentMinutes < startAt && currentMinutes >= expiresAt) {
+                console.log(`Blocking site due to time limit: ${url}`);
+                blockPage(tabId); // Block page if current time is outside the allowed range
+              }
             } else {
-              console.log(`Site is still valid: ${url}`);
+              // If end time is the same day (not overnight)
+              if (currentMinutes < startAt || currentMinutes >= expiresAt) {
+                console.log(`Blocking site due to time limit: ${url}`);
+                blockPage(tabId); // Block page if current time is outside the allowed range
+              }
             }
           } else {
             console.log(`No expiration data found for site: ${url}`);
@@ -839,7 +884,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
   }
 });
-
 
 // Block the page by redirecting to a blocked page
 function blockPage(tabId) {

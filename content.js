@@ -2,17 +2,36 @@
 //the function collects the links and sends them to the sw.js where it is send to the backend to be checked
 //***************
 //start
+// Collects all the links from the page, specifically for mailing services
 function collectLinks() {
+  const currentDomain = window.location.hostname; // Get the current domain
+
+  // Define the domains of the mailing services
+  const emailServices = [
+    "mail.google.com", // Gmail
+    "outlook.live.com", // Outlook
+    "mail.yahoo.com", // Yahoo Mail
+    "mail.com", // Mail.com
+    "aol.com" // AOL Mail (Add more if needed)
+  ];
+
+  // Check if the current domain matches any of the mailing services
+  if (!emailServices.some((domain) => currentDomain.includes(domain))) {
+    console.log("Not a mailing service page. Exiting.");
+    return []; // Exit if the current domain is not a recognized mailing service
+  }
+
   // Collect all the links on the page, excluding unwanted URLs
   const links = Array.from(document.querySelectorAll("a"))
     .map((element) => element.href)
-    .filter((href) => 
-      typeof href === "string" && 
+    .filter((href) =>
+      typeof href === "string" &&
       href.trim() !== "" &&
       !href.includes("www.google.com") &&
       !href.includes("www.googleadservices.com")
     );
 
+  console.log("Collected links: ", links); // For debugging
   return links;
 }
 
@@ -49,11 +68,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       highlightPhishingLinks(request.foundUrls);
       return;
     }
-      return;
+    return;
   }
 });
 
 function scanLinks() {
+  const currentDomain = window.location.hostname; // Get the current domain
+
+  // Define the domains of the mailing services
+  const emailServices = [
+    "mail.google.com", // Gmail
+    "outlook.live.com", // Outlook
+    "mail.yahoo.com", // Yahoo Mail
+    "mail.com", // Mail.com
+    "aol.com" // AOL Mail (Add more if needed)
+  ];
+
+  // Check if the current domain matches any of the mailing services
+  if (!emailServices.some((domain) => currentDomain.includes(domain))) {
+    console.log("Not a mailing service page. Exiting.");
+    return; // Exit if the current domain is not a recognized mailing service
+  }
+
   // Collect links and send to background script
   if (!chrome.runtime.id) {
     console.error("Extension context invalidated. Re-injecting content script...");
@@ -64,21 +100,29 @@ function scanLinks() {
     return;
   }
   const links = collectLinks();
-  chrome.runtime.sendMessage({ action: "phishingLink", links });
+  if (links.length > 0) {
+    chrome.runtime.sendMessage({ action: "phishingLink", links });
+  }
 }
 
-scanLinks();
+// Execute scanLinks only on mailing service pages
+if (window.location.hostname.includes("mail")) {
+  scanLinks();
+}
 
 // Observe DOM changes and trigger scanLinks on navigation and significant changes
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     if (mutation.type === 'childList' || mutation.type === 'attributes' && mutation.attributeName === 'href') {
-      scanLinks();
+      if (window.location.hostname.includes("mail")) {
+        scanLinks();
+      }
     }
   });
 });
 
 observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] });
+
 //***************
 //end
 
@@ -188,47 +232,38 @@ observer.observe(document.body, { childList: true, subtree: true, attributes: tr
     setInterval(() => {
       var video = document.querySelector("video");
       const ad = [...document.querySelectorAll(".ad-showing")][0];
-
       // Remove page ads
       if (window.location.href !== currentUrl) {
         currentUrl = window.location.href;
         removePageAds();
       }
-
       if (ad) {
         isAdFound = true;
         adLoop = adLoop + 1;
-
         // If we tried 10 times we can assume it won't work this time (Stops weird pause/freeze on ads)
         if (adLoop < 10) {
           const openAdCenterButton = document.querySelector(
             ".ytp-ad-button-icon"
           );
           openAdCenterButton?.click();
-
           const blockAdButton = document.querySelector('[label="Block ad"]');
           blockAdButton?.click();
-
           const blockAdButtonConfirm = document.querySelector(
             '.Eddif [label="CONTINUE"] button'
           );
           blockAdButtonConfirm?.click();
-
           const closeAdCenterButton = document.querySelector(".zBmRhe-Bz112c");
           closeAdCenterButton?.click();
         } else {
           if (video) video.play();
         }
-
         // Skip directly to the video content (bypassing the ad)
         if (video) {
           let randomNumber = Math.random() * (0.5 - 0.1) + 0.1;
           video.currentTime = video.duration + randomNumber || 0; // Jump to the end of the ad (or after the ad ends)
           video.play();
         }
-
         log("Ad skipped directly to video (✔️)");
-
         // Increment the counter and update storage
         adCounter++;
         chrome.storage.sync.set({ adCounter: adCounter }, function () {
