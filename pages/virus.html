@@ -45,6 +45,25 @@
       width: 3rem;
       height: 3rem;
     }
+
+    .malicious {
+      color: red;
+      font-weight: bold;
+    }
+
+    .safe {
+      color: green;
+      font-weight: bold;
+    }
+
+    .suspicious {
+      color: orange;
+      font-weight: bold;
+    }
+
+    .neutral {
+      color: gray;
+    }
   </style>
 </head>
 
@@ -68,10 +87,10 @@
       <div class="col-12">
         <div class="row">
           <div class="col-2">
-            <img src="../icons/Cyber Guard (7).png" alt="" width="150" height="125">
+            <img src="../icons/virus.png" alt="" width="150" height="125">
           </div>
           <div class="col-9 d-flex justify-content-between">
-            <h1 class="m-3 mt-4">SSL Certificate</h1>
+            <h1 class="m-3 mt-4">VIRUS</h1>
             <a class="mt-4" href="./Dashbord.html"><b>BACK</b></a>
           </div>
         </div>
@@ -89,61 +108,64 @@
       </div>
     </div>
 
+    <!-- Third Section: Block Ads -->
+    <div class="row rounded-3 mt-4 m-3" style="background-color: #002C61; min-height: 40px;">
+      <div class="col-12 d-flex justify-content-center align-items-center p-2">
+        <div class="text-center">
+          <h3 style="color: #00F5FF;">Virus Detected</h3>
+          <h3 style="color: #00F5FF;">
+            <span id="adCount" style="color: #ED524E;">0</span> in total
+          </h3>
+        </div>
+      </div>
+    </div>
+    <!-- Enable Block Ad Blocker -->
+
     <!-- second div -->
-    <div style="background-color: #D4EDDA;min-height: 40px" class="row rounded-3 mt-4 m-1">
-      <div class="col-12">
-        <div class="container-fluid">
-          <div class="row">
-            <div id="ssl_info" class="alert alert-info mt-2" role="alert">
-              <div class="d-flex justify-content-center">
-                <div class="spinner-border" role="status"></div>
-              </div>
-              Retrieving SSL certificate details...
-            </div>
-            <div class="mb-3">
-              <h6>
-                <span>Issued To:</span>
-                <span style="color: #004369;" id="issued_to">N/A</span>
-              </h6>
-              <h6>
-                <span>Issued By:</span>
-                <span style="color: #004369;" id="issued_by">N/A</span>
-              </h6>
-              <h6>
-                <span>Valid Period:</span>
-                <span style="color: #004369;" id="valid_period">N/A</span>
-              </h6>
-              <h6>Status: <span class="text-success" id="is_valid">N/A</span></h6>
+    <div class="row p-2 m-1 mt-4">
+      <h4><b>Real-Time Virus Scanner</b></h4>
+      <p>Click the button below to scan the current website for potential viruses and threats. This helps ensure the
+        site is safe for you and your family to browse.</p>
+      <div class="col-12 p-1" style="background-color: #D4EDDA; border-radius: 10px; height: 70px;">
+        <div class="row">
+          <div class="col-3">
+            <img src="../icons/security.png" alt="" width="60" height="60">
+          </div>
+          <div class="col-4">
+            <p class="mt-3"><b>Scan url</b></p>
+          </div>
+          <div class="col-5 p-1 mt-2 d-flex align-items-start justify-content-start align-content-start">
+            <div class="form-check form-switch d-flex align-items-start justify-content-start align-content-start">
+              <button style="background-color: #002C61;color: #00F5FF;border: none;" id="scanURL"
+                class="btn btn-primary">scan URL</button>
             </div>
           </div>
         </div>
       </div>
     </div>
-    
     <!-- end of second div -->
 
-    <!-- Enable Block Ad Blocker -->
-  <div class="row p-2 m-1 mt-4">
-    <div class="col-12 p-2" style="background-color: #D4EDDA; border-radius: 10px; height: 70px;">
-      <div class="row">
-        <div class="col-3">
-          <img src="../icons/unsecure.png" alt="" width="60" height="60">
-        </div>
-        <div class="col-5">
-          <p class="mt-3"><b>Http Blocker</b></p>
-        </div>
-        <div class="col-4 mt-2 p-2 d-flex align-items-start justify-content-start align-content-start">
-          <div class="form-check form-switch d-flex align-items-start justify-content-start align-content-start">
-            <div class="toggle">
-              <input type="checkbox" id="httpToggle">
+    <div class="row p-3">
+      <h4><b>Scan Results</b></h4>
+      <!-- ENABLE Keyword Filtering -->
+      <div class="row p-2 m-1">
+        <div style="background-color: #D4EDDA;border-radius: 10px;min-height: 70px;" class="col-12 p-1">
+          <div class="row">
+            <div id="scanResult">
+              <p><strong>URL:</strong> <span id="url">-</span></p>
+              <p><strong>Malicious:</strong> <span id="malicious">-</span></p>
+              <p><strong>Harmless:</strong> <span id="harmless">-</span></p>
+              <p><strong>Suspicious:</strong> <span id="suspicious">-</span></p>
+              <p><strong>Undetected:</strong> <span id="undetected">-</span></p>
+              <p id="finalMessage" class="neutral">Scan result will appear here.</p>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Enable Pop-up Blocker -->
+      <!-- end of Keyword Filtering div -->
+
+    </div>
 
   </div>
   <footer class="mt-4">
@@ -161,7 +183,7 @@
       </div>
     </div>
   </footer>
-  <script src="../src/ssl.js"></script>
+  <script src="../src/virus.js"></script>
 </body>
 
 </html>

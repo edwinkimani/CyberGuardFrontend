@@ -174,11 +174,11 @@
         <div style="background-color: #D4EDDA;border-radius: 10px;min-height: 70px;" class="col-12 p-1">
           <div class="row">
             <h1>URLs</h1>
-            <form id="myForm" method="post" action="" class="col-12">
+            <form id="block-url-form" method="post" action="" class="col-12">
 
               <div class="mb-3">
                 <label for="url" class="form-label">Enter URL links</label>
-                <input class="form-control" name="url" id="url" placeholder="https://example.com"
+                <input type="url" class="form-control" name="url" id="block-url" placeholder="https://example.com"
                   style="width: 300px !important;">
               </div>
 
@@ -194,6 +194,21 @@
         </div>
       </div>
       <!-- end of Keyword Filtering div -->
+
+      <div class="row p-2">
+        <h4><b>Blocked Sites</b></h4>
+        <!-- ENABLE Keyword Filtering -->
+        <div class="row p-2 m-1">
+          <div style="background-color: #D4EDDA;border-radius: 10px;min-height: 70px;" class="col-12 p-1">
+            <div class="row">
+              <ul id="blockList">no time outs added please add some and they will appear here</ul>
+            </div>
+          </div>
+        </div>
+  
+        <!-- end of Keyword Filtering div -->
+  
+      </div>
 
     </div>
     <!-- end enter block site urls -->

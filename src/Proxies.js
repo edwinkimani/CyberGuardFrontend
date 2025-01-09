@@ -11,7 +11,7 @@ function updateStats(proxyId, stats) {
     proxyElement.querySelector('.download-speed').textContent = `Download: ${stats.downloadSpeed} Mbps`;
     proxyElement.querySelector('.upload-speed').textContent = `Upload: ${stats.uploadSpeed} Mbps`;
     proxyElement.querySelector('.latency').textContent = `Latency: ${stats.latency} ms`;
-    proxyElement.querySelector('.time-connected').textContent = `Time Connected: ${stats.timeConnected} s`;
+    proxyElement.querySelector('.time-connected').textContent = `responseTime: ${stats.responseTime} seconds`;
   }
 }
 

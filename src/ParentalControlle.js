@@ -24,41 +24,6 @@ window.addEventListener("load", () => {
   });
 });
 
-// Form submission handling
-document.getElementById("myForm").addEventListener("submit", function (e) {
-  e.preventDefault(); // Prevents the default form submission behavior
-
-  const url = document.getElementById("url").value;
-
-  const toastElement = document.getElementById("liveToast");
-  const userDataString = localStorage.getItem("user");
-  const messageParagraph = document.querySelector(".message");
-  const userData = JSON.parse(userDataString);
-  const uid = userData.uid;
-
-  const data = {
-    url,
-    uid,
-  };
-
-  fetch("http://127.0.0.1:8000/api/blockurl", {
-    method: "post",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      messageParagraph.textContent = data.message;
-      toastElement.classList.add("bg-success");
-      const toast = new bootstrap.Toast(toastElement);
-      toast.show();
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-    });
-});
 
 // Function to handle the add-site action
 function handleAddSite(event) {
@@ -302,3 +267,109 @@ function displayTimeouts() {
 document.addEventListener("DOMContentLoaded", function () {
   displayTimeouts();
 });
+
+document.getElementById("block-url-form").addEventListener("submit", async function (e) {
+  e.preventDefault(); // Prevent default form submission
+
+  const urlInput = document.getElementById("block-url");
+  const url = urlInput.value.trim();
+
+  // URL validation regex
+  const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/;
+
+  if (!urlPattern.test(url)) {
+    alert("Please enter a valid URL.");
+    return;
+  }
+
+  try {
+    const db = await openDatabaseBlockedURL();
+    const transaction = db.transaction("blockURLStore", "readwrite");
+    const store = transaction.objectStore("blockURLStore");
+
+    const entry = {
+      blockedURL: url,
+    };
+
+    const request = store.add(entry);
+
+    request.onsuccess = () => {
+      alert("URL successfully blocked!");
+      urlInput.value = ""; // Clear input field after successful save
+      displayBlockedURLs(); // Refresh displayed URLs
+    };
+
+    request.onerror = (event) => {
+      alert(`Failed to block URL: ${event.target.error}`);
+    };
+  } catch (error) {
+    alert(`Error accessing database: ${error}`);
+  }
+});
+
+async function displayBlockedURLs() {
+  const db = await openDatabaseBlockedURL();
+  const transaction = db.transaction("blockURLStore", "readonly");
+  const store = transaction.objectStore("blockURLStore");
+  const request = store.getAll();
+
+  request.onsuccess = (event) => {
+    const urls = event.target.result;
+    const list = document.getElementById("timeoutList"); // Updated to match provided HTML
+    list.innerHTML = ""; // Clear existing list
+
+    if (urls.length === 0) {
+      list.innerHTML = "no urls blocked if any they will be displayed here";
+    } else {
+      urls.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item.blockedURL;
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.onclick = () => deleteBlockedURL(item.blockedURL);
+        li.appendChild(deleteBtn);
+        list.appendChild(li);
+      });
+    }
+  };
+}
+
+async function deleteBlockedURL(url) {
+  const db = await openDatabaseBlockedURL();
+  const transaction = db.transaction("blockURLStore", "readwrite");
+  const store = transaction.objectStore("blockURLStore");
+  const request = store.delete(url);
+
+  request.onsuccess = () => {
+    alert("URL successfully deleted!");
+    displayBlockedURLs(); // Refresh displayed URLs
+  };
+
+  request.onerror = (event) => {
+    alert(`Failed to delete URL: ${event.target.error}`);
+  };
+}
+
+function openDatabaseBlockedURL() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("BlockedSitesURL", 1);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains("blockURLStore")) {
+        const store = db.createObjectStore("blockURLStore", {
+          keyPath: "blockedURL",
+        });
+        store.createIndex("url", "blockedURL", { unique: true });
+        store.createIndex("expiresAt", "expiresAt", { unique: false });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = (event) =>
+      reject(`Database error: ${event.target.error}`);
+  });
+}
+
+// Initial display call to populate the list on page load
+displayBlockedURLs();
